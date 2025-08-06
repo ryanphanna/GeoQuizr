@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geography Quiz</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0;
+            color: #333;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            max-width: 500px;
+            width: 90%;
+            padding: 30px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        .city-btn {
+            background: #f1f3f4;
+            border: none;
+            padding: 12px 16px;
+            margin: 5px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .city-btn:hover {
+            background: #e8eaed;
+            transform: translateY(-2px);
+        }
+        .city-btn.selected {
+            background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102,126,234,0.3);
+        }
+        .continue-btn {
+            background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 20px;
+            transition: all 0.3s ease;
+        }
+        .continue-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(102,126,234,0.3);
+        }
+        .continue-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .game-mode {
+            background: linear-gradient(45deg, #43e97b 0%, #38f9d7 100%);
+            color: white;
+            border: none;
+            padding: 20px;
+            border-radius: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            margin-bottom: 15px;
+            text-align: left;
+            transition: all 0.3s ease;
+        }
+        .game-mode:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+        .option {
+            background: white;
+            border: 2px solid #e0e6ed;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .option:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+        .option.selected {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        .option.correct {
+            background: #4CAF50;
+            color: white;
+        }
+        .option.incorrect {
+            background: #f44336;
+            color: white;
+        }
+        .hidden { display: none; }
+        .score {
+            text-align: center;
+            font-size: 1.2em;
+            margin-bottom: 20px;
+            color: #667eea;
+            font-weight: bold;
+        }
+        .question {
+            background: #f8f9ff;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            border-left: 5px solid #667eea;
+        }
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            flex: 1;
+        }
+        .btn-secondary { background: #f1f3f4; color: #333; }
+        .btn-primary { background: #667eea; color: white; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Step 1: City Selection -->
+        <div id="city-selection">
+            <div class="header">
+                <h1>🗺️ Geography Quiz</h1>
+                <p>Pick a city you're familiar with:</p>
+            </div>
+            
+            <div>
+                <button class="city-btn" onclick="selectCity('Toronto')">🍁 Toronto</button>
+                <button class="city-btn" onclick="selectCity('Vancouver')">🏔️ Vancouver</button>
+                <button class="city-btn" onclick="selectCity('Seattle')">☕ Seattle</button>
+                <button class="city-btn" onclick="selectCity('Chicago')">🏙️ Chicago</button>
+                <button class="city-btn" onclick="selectCity('Montreal')">⚜️ Montreal</button>
+                <button class="city-btn" onclick="selectCity('Boston')">🦞 Boston</button>
+            </div>
+            
+            <button class="continue-btn" onclick="showGameModes()" id="continue-btn" disabled>
+                Continue
+            </button>
+        </div>
+
+        <!-- Step 2: Game Mode Selection -->
+        <div id="game-modes" class="hidden">
+            <div class="header">
+                <h2>Choose a Quiz Type</h2>
+                <p>Selected: <span id="selected-city">Toronto</span></p>
+            </div>
+            
+            <button class="game-mode" onclick="startQuiz('transit')">
+                🚇 Transit Challenge<br>
+                <small>Guess subway/bus stations</small>
+            </button>
+            
+            <button class="game-mode" onclick="startQuiz('geography')">
+                🏛️ Geography Challenge<br>
+                <small>Towns, counties, regions</small>
+            </button>
+            
+            <button class="game-mode" onclick="startQuiz('capitals')">
+                🌍 World Capitals<br>
+                <small>Capital cities quiz</small>
+            </button>
+            
+            <button onclick="showCitySelection()" style="background: #f1f3f4; border: none; padding: 10px; border-radius: 8px; cursor: pointer; width: 100%; margin-top: 10px;">
+                ← Back to City Selection
+            </button>
+        </div>
+
+        <!-- Step 3: Quiz -->
+        <div id="quiz" class="hidden">
+            <div class="score">Score: <span id="score">0</span>/<span id="total">3</span></div>
+            
+            <div class="question">
+                <h3 id="question-text">Loading question...</h3>
+                <div id="options"></div>
+            </div>
+            
+            <div class="controls">
+                <button class="btn btn-secondary" onclick="skipQuestion()">Skip</button>
+                <button class="btn btn-primary" onclick="nextQuestion()" id="next-btn" disabled>Next</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Simple data - later this goes to Firebase
+        const questions = {
+            transit: [
+                {
+                    question: "Which city has the TTC subway system?",
+                    options: ["Toronto", "Montreal", "Vancouver", "Calgary"],
+                    correct: 0,
+                    explanation: "TTC stands for Toronto Transit Commission."
+                },
+                {
+                    question: "What color is the main subway line in Montreal?",
+                    options: ["Red", "Blue", "Green", "Orange"],
+                    correct: 2,
+                    explanation: "Montreal's main line is the Green Line."
+                },
+                {
+                    question: "Seattle's light rail system is called:",
+                    options: ["Link", "Metro", "Sound", "Transit"],
+                    correct: 0,
+                    explanation: "Seattle has Link Light Rail."
+                }
+            ],
+            geography: [
+                {
+                    question: "Elmira, Ontario is in which township?",
+                    options: ["Woolwich", "Wilmot", "Wellesley", "Waterloo"],
+                    correct: 0,
+                    explanation: "Elmira is in Woolwich Township."
+                },
+                {
+                    question: "Which province is Vancouver in?",
+                    options: ["Alberta", "British Columbia", "Ontario", "Quebec"],
+                    correct: 1,
+                    explanation: "Vancouver is in British Columbia."
+                },
+                {
+                    question: "Chicago is in which state?",
+                    options: ["Indiana", "Wisconsin", "Illinois", "Michigan"],
+                    correct: 2,
+                    explanation: "Chicago is in Illinois."
+                }
+            ],
+            capitals: [
+                {
+                    question: "What is the capital of Canada?",
+                    options: ["Toronto", "Montreal", "Vancouver", "Ottawa"],
+                    correct: 3,
+                    explanation: "Ottawa is Canada's capital."
+                },
+                {
+                    question: "What is the capital of Australia?",
+                    options: ["Sydney", "Melbourne", "Canberra", "Brisbane"],
+                    correct: 2,
+                    explanation: "Canberra is Australia's capital."
+                },
+                {
+                    question: "What is the capital of New Zealand?",
+                    options: ["Auckland", "Wellington", "Christchurch", "Hamilton"],
+                    correct: 1,
+                    explanation: "Wellington is New Zealand's capital."
+                }
+            ]
+        };
+
+        // Game state
+        let selectedCity = '';
+        let currentQuiz = '';
+        let currentQuestion = 0;
+        let score = 0;
+        let selectedAnswer = null;
+
+        function selectCity(city) {
+            // Remove selection from all buttons
+            document.querySelectorAll('.city-btn').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            
+            // Select clicked button
+            event.target.classList.add('selected');
+            selectedCity = city;
+            
+            // Enable continue button
+            document.getElementById('continue-btn').disabled = false;
+        }
+
+        function showGameModes() {
+            document.getElementById('city-selection').classList.add('hidden');
+            document.getElementById('game-modes').classList.remove('hidden');
+            document.getElementById('selected-city').textContent = selectedCity;
+        }
+
+        function showCitySelection() {
+            document.getElementById('game-modes').classList.add('hidden');
+            document.getElementById('city-selection').classList.remove('hidden');
+        }
+
+        function startQuiz(quizType) {
+            currentQuiz = quizType;
+            currentQuestion = 0;
+            score = 0;
+            
+            document.getElementById('game-modes').classList.add('hidden');
+            document.getElementById('quiz').classList.remove('hidden');
+            
+            document.getElementById('total').textContent = questions[quizType].length;
+            document.getElementById('score').textContent = '0';
+            
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            if (currentQuestion >= questions[currentQuiz].length) {
+                showResults();
+                return;
+            }
+
+            const question = questions[currentQuiz][currentQuestion];
+            document.getElementById('question-text').textContent = question.question;
+            
+            const optionsDiv = document.getElementById('options');
+            optionsDiv.innerHTML = '';
+            
+            question.options.forEach((option, index) => {
+                const optionDiv = document.createElement('div');
+                optionDiv.className = 'option';
+                optionDiv.textContent = option;
+                optionDiv.onclick = () => selectAnswer(index, optionDiv);
+                optionsDiv.appendChild(optionDiv);
+            });
+            
+            selectedAnswer = null;
+            document.getElementById('next-btn').disabled = true;
+        }
+
+        function selectAnswer(index, element) {
+            // Remove selection from all options
+            document.querySelectorAll('.option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            
+            element.classList.add('selected');
+            selectedAnswer = index;
+            document.getElementById('next-btn').disabled = false;
+        }
+
+        function nextQuestion() {
+            if (selectedAnswer === null) return;
+            
+            const question = questions[currentQuiz][currentQuestion];
+            const options = document.querySelectorAll('.option');
+            const isCorrect = selectedAnswer === question.correct;
+            
+            // Show correct/incorrect
+            options.forEach((option, index) => {
+                if (index === question.correct) {
+                    option.classList.add('correct');
+                } else if (index === selectedAnswer && !isCorrect) {
+                    option.classList.add('incorrect');
+                }
+                option.onclick = null; // Disable clicking
+            });
+            
+            if (isCorrect) {
+                score++;
+                document.getElementById('score').textContent = score;
+            }
+            
+            // Show explanation
+            document.getElementById('question-text').textContent = 
+                `${isCorrect ? '✓ Correct!' : '✗ Incorrect'} ${question.explanation}`;
+            
+            currentQuestion++;
+            
+            if (currentQuestion >= questions[currentQuiz].length) {
+                document.getElementById('next-btn').textContent = 'Finish';
+                setTimeout(showResults, 2000);
+            } else {
+                setTimeout(() => {
+                    loadQuestion();
+                }, 2500);
+            }
+        }
+
+        function skipQuestion() {
+            currentQuestion++;
+            if (currentQuestion >= questions[currentQuiz].length) {
+                showResults();
+            } else {
+                loadQuestion();
+            }
+        }
+
+        function showResults() {
+            const percentage = Math.round((score / questions[currentQuiz].length) * 100);
+            alert(`Quiz Complete!\nScore: ${score}/${questions[currentQuiz].length} (${percentage}%)`);
+            
+            // Reset to game modes
+            document.getElementById('quiz').classList.add('hidden');
+            document.getElementById('game-modes').classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
