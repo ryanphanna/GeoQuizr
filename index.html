@@ -103,6 +103,16 @@
             font-weight: 600;
         }
 
+        .user-level {
+            background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+            color: #333;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75em;
+            font-weight: 600;
+            margin-left: 5px;
+        }
+
         .container {
             max-width: 100%;
             padding: 15px;
@@ -222,6 +232,10 @@
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
 
+        .game-mode-card.geography::before {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+        }
+
         .game-mode-card:hover {
             transform: translateY(-2px);
             box-shadow: 0 8px 25px rgba(0,0,0,0.15);
@@ -259,34 +273,53 @@
             font-weight: 500;
         }
 
-        /* Browse options */
-        .browse-option {
-            min-width: 120px;
-            background: white;
-            border: 2px solid #e2e8f0;
+        /* Stats grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
             padding: 15px;
-            border-radius: 12px;
+            border-radius: 8px;
             text-align: center;
-            cursor: pointer;
-            transition: all 0.2s ease;
         }
 
-        .browse-option:hover {
-            border-color: #1e3c72;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(30, 60, 114, 0.15);
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 5px;
         }
 
-        .browse-option .icon {
-            font-size: 1.8em;
-            margin-bottom: 8px;
-            display: block;
-        }
-
-        .browse-option .title {
-            font-weight: 600;
-            color: #2d3748;
+        .stat-label {
             font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        /* Progress to next level */
+        .level-progress {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .level-progress-bar {
+            background: #e2e8f0;
+            height: 10px;
+            border-radius: 5px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .level-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s ease;
         }
 
         /* Leaderboard preview */
@@ -625,11 +658,6 @@
             .game-mode-card {
                 min-width: 180px;
             }
-            
-            .browse-option {
-                min-width: 100px;
-                padding: 12px;
-            }
         }
     </style>
 </head>
@@ -644,13 +672,13 @@
                 <div class="user-info">
                     <div class="score-display" id="scoreDisplay">
                         ⭐ 0 pts
+                        <span class="user-level" id="userLevel">Rookie</span>
                     </div>
                     <button class="header-btn" onclick="showProfile()">👤</button>
                     <button class="header-btn" onclick="showLeaderboard()">🏆</button>
                     <button class="header-btn" onclick="showAddQuestion()">➕</button>
+                </div>
             </div>
-        </div>
-    </div>
         </div>
 
         <div class="content-wrapper">
@@ -697,41 +725,23 @@
                                 <div class="title">Transit IQ</div>
                                 <div class="subtitle">Facts, stats & system knowledge</div>
                             </div>
-                        </div>
-                    </div>
-
-                    <!-- Quick Actions -->
-                    <div class="section">
-                        <div class="section-header">
-                            <h2 class="section-title">🚀 More</h2>
-                        </div>
-                        <div class="carousel">
-                            <div class="browse-option" onclick="showAddQuestion()">
-                                <span class="icon">➕</span>
-                                <div class="title">Add Question</div>
-                            </div>
-                            <div class="browse-option" onclick="showProfile()">
-                                <span class="icon">📊</span>
-                                <div class="title">My Stats</div>
-                            </div>
-                            <div class="browse-option" onclick="showLeaderboard()">
-                                <span class="icon">🏆</span>
-                                <div class="title">Rankings</div>
+                            <div class="game-mode-card geography" onclick="startGame('geography')">
+                                <span class="question-count" id="geographyCount">0</span>
+                                <span class="icon">🌍</span>
+                                <div class="title">City Geography</div>
+                                <div class="subtitle">Counties, regions & city locations</div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Leaderboard Preview -->
+                    <!-- Recent Activity -->
                     <div class="section">
                         <div class="section-header">
-                            <h2 class="section-title">🏆 Top Players</h2>
-                            <span class="see-all" onclick="showLeaderboard()">View all →</span>
+                            <h2 class="section-title">📊 Recent Activity</h2>
                         </div>
-                        <div class="leaderboard-preview" id="leaderboardPreview">
-                            <div class="loading">
-                                <div class="loading-spinner"></div>
-                                <div>Loading leaderboard...</div>
-                            </div>
+                        <div id="recentActivity" class="empty-state">
+                            <div class="empty-state-icon">🚇</div>
+                            <div>Start playing to see your activity</div>
                         </div>
                     </div>
                 </div>
@@ -740,20 +750,36 @@
                 <div id="profileSection" class="section hidden">
                     <h2>👤 Your Profile</h2>
                     
-                    <div style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); color: white; padding: 20px; border-radius: 12px; margin: 20px 0; text-align: center;">
-                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
-                            <div>
-                                <div style="font-size: 2em; font-weight: bold;" id="profileScore">0</div>
-                                <div style="font-size: 0.9em; opacity: 0.9;">Total Score</div>
-                            </div>
-                            <div>
-                                <div style="font-size: 2em; font-weight: bold;" id="profileGames">0</div>
-                                <div style="font-size: 0.9em; opacity: 0.9;">Games</div>
-                            </div>
-                            <div>
-                                <div style="font-size: 2em; font-weight: bold;" id="profileQuestions">0</div>
-                                <div style="font-size: 0.9em; opacity: 0.9;">Questions Added</div>
-                            </div>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-value" id="profileScore">0</div>
+                            <div class="stat-label">All-Time Score</div>
+                        </div>
+                        <div class="stat-card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+                            <div class="stat-value" id="profileScore30">0</div>
+                            <div class="stat-label">Last 30 Days</div>
+                        </div>
+                        <div class="stat-card" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">
+                            <div class="stat-value" id="profileGames">0</div>
+                            <div class="stat-label">Games Played</div>
+                        </div>
+                        <div class="stat-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                            <div class="stat-value" id="profileQuestions">0</div>
+                            <div class="stat-label">Questions Added</div>
+                        </div>
+                    </div>
+
+                    <div class="level-progress">
+                        <h3 style="margin-bottom: 10px;">Level Progress</h3>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                            <span id="currentLevelText">Rookie</span>
+                            <span id="nextLevelText">Transit Fan (100 pts)</span>
+                        </div>
+                        <div class="level-progress-bar">
+                            <div class="level-progress-fill" id="levelProgressFill" style="width: 0%;"></div>
+                        </div>
+                        <div style="text-align: center; color: #666; font-size: 0.9em;">
+                            <span id="levelProgressText">0 / 100 points</span>
                         </div>
                     </div>
 
@@ -767,6 +793,12 @@
                 <!-- Leaderboard Section -->
                 <div id="leaderboardSection" class="section hidden">
                     <h2>🏆 Leaderboard</h2>
+                    
+                    <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                        <button class="btn btn-primary" onclick="loadLeaderboard('all')" id="btnAllTime">All Time</button>
+                        <button class="btn" style="background: #6c757d; color: white;" onclick="loadLeaderboard('30')" id="btn30Days">Last 30 Days</button>
+                    </div>
+                    
                     <div id="leaderboardList">
                         <div class="loading">
                             <div class="loading-spinner"></div>
@@ -799,6 +831,7 @@
                             <option value="routes">🗺️ Route Runner</option>
                             <option value="nextstation">🚉 Next Stop</option>
                             <option value="trivia">🧠 Transit IQ</option>
+                            <option value="geography">🌍 City Geography</option>
                         </select>
                     </div>
 
@@ -812,22 +845,22 @@
 
                     <div class="form-group">
                         <label>Question:</label>
-                        <textarea id="newQuestion" rows="3" placeholder="e.g., What U.S. transit agency operates PlusBus?"></textarea>
+                        <textarea id="newQuestion" rows="3" placeholder="e.g., What county is Toronto located in?"></textarea>
                     </div>
 
                     <div class="form-group">
                         <label>Correct Answer:</label>
-                        <input type="text" id="newCorrect" placeholder="e.g., CDTA">
+                        <input type="text" id="newCorrect" placeholder="e.g., Toronto Division">
                     </div>
 
                     <div class="form-group" id="wrongOptionsGroup">
                         <label>Wrong Options (comma separated):</label>
-                        <input type="text" id="newWrong" placeholder="e.g., MTA, SEPTA, WMATA">
+                        <input type="text" id="newWrong" placeholder="e.g., York Region, Peel Region, Durham Region">
                     </div>
 
                     <div class="form-group">
                         <label>Hint (optional, shows after 10 seconds):</label>
-                        <input type="text" id="newHint" placeholder="e.g., This agency serves New York's capital">
+                        <input type="text" id="newHint" placeholder="e.g., It's not a regional municipality">
                     </div>
 
                     <button class="btn btn-primary" onclick="addQuestion()">Submit Question</button>
@@ -868,10 +901,6 @@
                 </div>
             </div>
         </div>
-
-        <div class="status-footer">
-            <div>Transit Trivia            </div>
-        </div>
     </div>
 
     <script>
@@ -888,7 +917,7 @@
             script2.onload = function() {
                 // Now initialize Firebase
                 const firebaseConfig = {
-                    apiKey: "AIza5yCka6MweRe1EThGRTkZjwj-mWswvJGNU",
+                    apiKey: "AIzaSyCka6MweRe1EThGRTkZjwj-mWswvJGNU",
                     authDomain: "geoquizr.firebaseapp.com",
                     projectId: "geoquizr",
                     storageBucket: "geoquizr.firebasestorage.app",
@@ -909,7 +938,18 @@
                 let questionTimer = null;
                 let hintShown = false;
 
-                // Sample questions to get started
+                // Level system - Based on all-time score
+                const levels = [
+                    { name: 'Rookie', minScore: 0, color: '#9CA3AF' },
+                    { name: 'Transit Fan', minScore: 100, color: '#60A5FA' },
+                    { name: 'Route Expert', minScore: 250, color: '#34D399' },
+                    { name: 'Station Master', minScore: 500, color: '#A78BFA' },
+                    { name: 'City Navigator', minScore: 1000, color: '#F59E0B' },
+                    { name: 'Transit Guru', minScore: 2000, color: '#EF4444' },
+                    { name: 'Metro Legend', minScore: 5000, color: '#EC4899' }
+                ];
+
+                // Sample questions including geography
                 const sampleQuestions = [
                     // Toronto questions
                     {
@@ -939,6 +979,15 @@
                         answerType: 'type',
                         hint: 'It was in the 1950s'
                     },
+                    {
+                        city: 'Toronto',
+                        mode: 'geography',
+                        question: 'Toronto was formerly part of which county?',
+                        correct: 'York County',
+                        wrong: ['Peel County', 'Durham County', 'Halton County'],
+                        answerType: 'multiple',
+                        hint: 'It shares the name with a region that surrounds Toronto today'
+                    },
                     // Vancouver questions
                     {
                         city: 'Vancouver',
@@ -958,15 +1007,14 @@
                         answerType: 'multiple',
                         hint: 'The station name includes the airport code'
                     },
-                    // Albany question
                     {
-                        city: 'Albany',
-                        mode: 'trivia',
-                        question: 'What U.S. transit agency operates PlusBus?',
-                        correct: 'CDTA',
-                        wrong: ['MTA', 'SEPTA', 'WMATA'],
+                        city: 'Vancouver',
+                        mode: 'geography',
+                        question: 'Which regional district is Vancouver part of?',
+                        correct: 'Metro Vancouver',
+                        wrong: ['Fraser Valley', 'Capital Regional District', 'Central Okanagan'],
                         answerType: 'multiple',
-                        hint: 'This agency serves New York\'s capital region'
+                        hint: 'It includes the word that describes the urban area'
                     },
                     // Montreal questions
                     {
@@ -978,7 +1026,16 @@
                         answerType: 'type',
                         hint: 'Named after a major street that runs east-west'
                     },
-                    // Type-answer questions
+                    {
+                        city: 'Montreal',
+                        mode: 'geography',
+                        question: 'Montreal is located on which island?',
+                        correct: 'Island of Montreal',
+                        wrong: ['Île Jésus', 'Île Perrot', 'Île Bizard'],
+                        answerType: 'multiple',
+                        hint: 'The island shares its name with the city'
+                    },
+                    // New York questions
                     {
                         city: 'New York',
                         mode: 'trivia',
@@ -989,6 +1046,16 @@
                         hint: 'Count 1, 2, 3, 4, 5, 6, 7... and three more'
                     },
                     {
+                        city: 'New York',
+                        mode: 'geography',
+                        question: 'Which NYC borough is NOT on an island?',
+                        correct: 'The Bronx',
+                        wrong: ['Manhattan', 'Brooklyn', 'Queens'],
+                        answerType: 'multiple',
+                        hint: 'It\'s the northernmost borough'
+                    },
+                    // Chicago questions
+                    {
                         city: 'Chicago',
                         mode: 'trivia',
                         question: 'What color is the CTA line that goes to O\'Hare Airport?',
@@ -996,6 +1063,25 @@
                         wrong: [],
                         answerType: 'type',
                         hint: 'It\'s a primary color, not red'
+                    },
+                    {
+                        city: 'Chicago',
+                        mode: 'geography',
+                        question: 'Which county is Chicago located in?',
+                        correct: 'Cook County',
+                        wrong: ['DuPage County', 'Lake County', 'Will County'],
+                        answerType: 'multiple',
+                        hint: 'It starts with C'
+                    },
+                    // Albany question
+                    {
+                        city: 'Albany',
+                        mode: 'trivia',
+                        question: 'What U.S. transit agency operates PlusBus?',
+                        correct: 'CDTA',
+                        wrong: ['MTA', 'SEPTA', 'WMATA'],
+                        answerType: 'multiple',
+                        hint: 'This agency serves New York\'s capital region'
                     }
                 ];
 
@@ -1027,6 +1113,25 @@
                     }
                 };
 
+                // Calculate user level
+                window.getUserLevel = function(score) {
+                    for (let i = levels.length - 1; i >= 0; i--) {
+                        if (score >= levels[i].minScore) {
+                            return levels[i];
+                        }
+                    }
+                    return levels[0];
+                }
+
+                window.getNextLevel = function(score) {
+                    const currentLevel = getUserLevel(score);
+                    const currentIndex = levels.findIndex(l => l.name === currentLevel.name);
+                    if (currentIndex < levels.length - 1) {
+                        return levels[currentIndex + 1];
+                    }
+                    return null;
+                }
+
                 // Initialize app
                 window.initializeApp = function() {
                     const savedUsername = localStorage.getItem('transitTriviaUser');
@@ -1049,11 +1154,13 @@
                     currentUser = {
                         username: username,
                         totalScore: 0,
+                        score30Days: 0,
                         gamesPlayed: 0,
                         questionsAdded: 0,
                         correctAnswers: 0,
                         lastPlayed: null,
-                        currentStreak: 0
+                        currentStreak: 0,
+                        gameHistory: []
                     };
                     
                     db.collection('users').doc(username).set({
@@ -1069,6 +1176,7 @@
                         if (doc.exists) {
                             currentUser = doc.data();
                             currentUser.username = username;
+                            calculate30DayScore();
                             updateUserDisplay();
                         } else {
                             createAnonymousUser();
@@ -1077,6 +1185,24 @@
                         console.error('Error loading user:', error);
                         createAnonymousUser();
                     });
+                }
+
+                // Calculate 30-day score
+                window.calculate30DayScore = function() {
+                    if (!currentUser || !currentUser.gameHistory) {
+                        currentUser.score30Days = 0;
+                        return;
+                    }
+                    
+                    const thirtyDaysAgo = new Date();
+                    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+                    
+                    currentUser.score30Days = currentUser.gameHistory
+                        .filter(game => {
+                            const gameDate = game.date.toDate ? game.date.toDate() : new Date(game.date);
+                            return gameDate >= thirtyDaysAgo;
+                        })
+                        .reduce((sum, game) => sum + (game.score || 0), 0);
                 }
 
                 // Load and update streak
@@ -1094,13 +1220,10 @@
                         const daysDiff = Math.floor((today - lastDate) / (1000 * 60 * 60 * 24));
                         
                         if (daysDiff === 0) {
-                            // Played today, keep streak
                             currentStreak = currentUser.currentStreak || 0;
                         } else if (daysDiff === 1) {
-                            // Played yesterday, can continue streak
                             currentStreak = currentUser.currentStreak || 0;
                         } else {
-                            // Streak broken
                             currentStreak = 0;
                         }
                     } else {
@@ -1140,18 +1263,16 @@
                 window.showLeaderboard = function() {
                     hideAllSections();
                     document.getElementById('leaderboardSection').classList.remove('hidden');
-                    loadFullLeaderboard();
+                    loadLeaderboard('all');
                 }
 
                 window.showAddQuestion = function() {
                     hideAllSections();
                     document.getElementById('addQuestionSection').classList.remove('hidden');
                     
-                    // Update wrong options visibility based on answer type
                     const answerTypeSelect = document.getElementById('answerType');
                     const wrongOptionsGroup = document.getElementById('wrongOptionsGroup');
                     
-                    // Remove any existing listeners first
                     const newSelect = answerTypeSelect.cloneNode(true);
                     answerTypeSelect.parentNode.replaceChild(newSelect, answerTypeSelect);
                     
@@ -1172,13 +1293,14 @@
                 window.updateHomepage = function() {
                     updateUserDisplay();
                     updateQuestionCounts();
-                    loadLeaderboardPreview();
+                    updateRecentActivity();
                 }
 
                 window.updateUserDisplay = function() {
                     if (!currentUser) return;
                     
-                    document.getElementById('scoreDisplay').textContent = `⭐ ${currentUser.totalScore || 0} pts`;
+                    const level = getUserLevel(currentUser.totalScore || 0);
+                    document.getElementById('scoreDisplay').innerHTML = `⭐ ${currentUser.totalScore || 0} pts<span class="user-level">${level.name}</span>`;
                 }
 
                 window.updateQuestionCounts = function() {
@@ -1186,11 +1308,12 @@
                         stations: 0,
                         routes: 0,
                         nextstation: 0,
-                        trivia: 0
+                        trivia: 0,
+                        geography: 0
                     };
                     
                     allQuestions.forEach(q => {
-                        if (q.mode === 'systems') q.mode = 'trivia'; // Map old mode name
+                        if (q.mode === 'systems') q.mode = 'trivia';
                         if (counts[q.mode] !== undefined) {
                             counts[q.mode]++;
                         }
@@ -1202,14 +1325,62 @@
                     document.getElementById('routesCount').textContent = counts.routes;
                     document.getElementById('nextstationCount').textContent = counts.nextstation;
                     document.getElementById('triviaCount').textContent = counts.trivia;
+                    document.getElementById('geographyCount').textContent = counts.geography;
                 }
 
                 window.updateProfile = function() {
                     if (!currentUser) return;
                     
-                    document.getElementById('profileScore').textContent = currentUser.totalScore || 0;
+                    const allTimeScore = currentUser.totalScore || 0;
+                    const score30Days = currentUser.score30Days || 0;
+                    
+                    document.getElementById('profileScore').textContent = allTimeScore;
+                    document.getElementById('profileScore30').textContent = score30Days;
                     document.getElementById('profileGames').textContent = currentUser.gamesPlayed || 0;
                     document.getElementById('profileQuestions').textContent = currentUser.questionsAdded || 0;
+                    
+                    // Update level progress
+                    const currentLevel = getUserLevel(allTimeScore);
+                    const nextLevel = getNextLevel(allTimeScore);
+                    
+                    document.getElementById('currentLevelText').textContent = currentLevel.name;
+                    
+                    if (nextLevel) {
+                        const progress = allTimeScore - currentLevel.minScore;
+                        const needed = nextLevel.minScore - currentLevel.minScore;
+                        const percentage = (progress / needed) * 100;
+                        
+                        document.getElementById('nextLevelText').textContent = `${nextLevel.name} (${nextLevel.minScore} pts)`;
+                        document.getElementById('levelProgressFill').style.width = `${percentage}%`;
+                        document.getElementById('levelProgressText').textContent = `${allTimeScore} / ${nextLevel.minScore} points`;
+                    } else {
+                        document.getElementById('nextLevelText').textContent = 'Max Level Reached!';
+                        document.getElementById('levelProgressFill').style.width = '100%';
+                        document.getElementById('levelProgressText').textContent = 'Metro Legend Status';
+                    }
+                }
+
+                window.updateRecentActivity = function() {
+                    if (!currentUser || !currentUser.gameHistory || currentUser.gameHistory.length === 0) {
+                        return;
+                    }
+                    
+                    const recent = currentUser.gameHistory.slice(-3).reverse();
+                    let html = '<div style="padding: 10px 0;">';
+                    
+                    recent.forEach(game => {
+                        const date = game.date.toDate ? game.date.toDate() : new Date(game.date);
+                        const dateStr = date.toLocaleDateString();
+                        html += `
+                            <div style="padding: 8px 0; border-bottom: 1px solid #e2e8f0;">
+                                <strong>${game.mode || 'Quiz'}</strong> - ${game.score} pts
+                                <span style="color: #666; font-size: 0.9em; float: right;">${dateStr}</span>
+                            </div>
+                        `;
+                    });
+                    
+                    html += '</div>';
+                    document.getElementById('recentActivity').innerHTML = html;
                 }
 
                 // Load questions
@@ -1223,7 +1394,6 @@
                             });
                         });
                         
-                        // Add sample questions if database is empty
                         if (allQuestions.length === 0) {
                             sampleQuestions.forEach(q => {
                                 db.collection('questions').add({
@@ -1244,71 +1414,74 @@
                 }
 
                 // Leaderboard functions
-                window.loadLeaderboardPreview = function() {
-                    db.collection('users')
-                        .orderBy('totalScore', 'desc')
-                        .limit(3)
-                        .get()
-                        .then(snapshot => {
-                            let html = '';
-                            let rank = 1;
-                            
-                            snapshot.forEach(doc => {
-                                const user = doc.data();
-                                const isCurrentUser = currentUser && doc.id === currentUser.username;
-                                html += `
-                                    <div class="leaderboard-item">
-                                        <div>
-                                            <span class="leaderboard-rank">#${rank}</span>
-                                            <span class="leaderboard-name">${doc.id} ${isCurrentUser ? '(You)' : ''}</span>
-                                        </div>
-                                        <div class="leaderboard-score">${user.totalScore} pts</div>
-                                    </div>
-                                `;
-                                rank++;
+                window.loadLeaderboard = function(type) {
+                    const btnAll = document.getElementById('btnAllTime');
+                    const btn30 = document.getElementById('btn30Days');
+                    
+                    if (type === 'all') {
+                        btnAll.className = 'btn btn-primary';
+                        btn30.className = 'btn';
+                        btn30.style.background = '#6c757d';
+                        btn30.style.color = 'white';
+                        
+                        db.collection('users')
+                            .orderBy('totalScore', 'desc')
+                            .limit(20)
+                            .get()
+                            .then(snapshot => {
+                                displayLeaderboard(snapshot, 'totalScore');
                             });
-                            
-                            if (html === '') {
-                                html = '<div style="text-align: center; color: #666; padding: 20px;">Be the first to play</div>';
-                            }
-                            
-                            document.getElementById('leaderboardPreview').innerHTML = html;
-                        }).catch(error => {
-                            console.error('Error loading leaderboard:', error);
-                        });
+                    } else {
+                        btn30.className = 'btn btn-primary';
+                        btnAll.className = 'btn';
+                        btnAll.style.background = '#6c757d';
+                        btnAll.style.color = 'white';
+                        
+                        db.collection('users')
+                            .orderBy('score30Days', 'desc')
+                            .limit(20)
+                            .get()
+                            .then(snapshot => {
+                                displayLeaderboard(snapshot, 'score30Days');
+                            });
+                    }
                 }
 
-                window.loadFullLeaderboard = function() {
-                    db.collection('users')
-                        .orderBy('totalScore', 'desc')
-                        .limit(20)
-                        .get()
-                        .then(snapshot => {
-                            let html = '';
-                            let rank = 1;
-                            
-                            snapshot.forEach(doc => {
-                                const user = doc.data();
-                                const isCurrentUser = currentUser && doc.id === currentUser.username;
-                                html += `
-                                    <div class="leaderboard-item" ${isCurrentUser ? 'style="background: #f0f4ff;"' : ''}>
-                                        <div>
-                                            <span class="leaderboard-rank">#${rank}</span>
-                                            <span class="leaderboard-name">${doc.id} ${isCurrentUser ? '(You)' : ''}</span>
-                                        </div>
-                                        <div class="leaderboard-score">${user.totalScore} pts</div>
-                                    </div>
-                                `;
-                                rank++;
-                            });
-                            
-                            document.getElementById('leaderboardList').innerHTML = html;
-                        });
+                window.displayLeaderboard = function(snapshot, scoreField) {
+                    let html = '';
+                    let rank = 1;
+                    
+                    snapshot.forEach(doc => {
+                        const user = doc.data();
+                        const score = user[scoreField] || 0;
+                        const isCurrentUser = currentUser && doc.id === currentUser.username;
+                        const level = getUserLevel(user.totalScore || 0);
+                        
+                        html += `
+                            <div class="leaderboard-item" ${isCurrentUser ? 'style="background: #f0f4ff;"' : ''}>
+                                <div>
+                                    <span class="leaderboard-rank">#${rank}</span>
+                                    <span class="leaderboard-name">
+                                        ${doc.id} ${isCurrentUser ? '(You)' : ''}
+                                        <span style="font-size: 0.8em; color: ${level.color};">[${level.name}]</span>
+                                    </span>
+                                </div>
+                                <div class="leaderboard-score">${score} pts</div>
+                            </div>
+                        `;
+                        rank++;
+                    });
+                    
+                    if (!html) {
+                        html = '<div style="text-align: center; padding: 20px; color: #666;">No players yet</div>';
+                    }
+                    
+                    document.getElementById('leaderboardList').innerHTML = html;
                 }
 
                 // Quiz functions
                 window.startQuickPlay = function() {
-                    const modes = ['stations', 'routes', 'nextstation', 'trivia'];
+                    const modes = ['stations', 'routes', 'nextstation', 'trivia', 'geography'];
                     const randomMode = modes[Math.floor(Math.random() * modes.length)];
                     startGame(randomMode);
                 }
@@ -1378,15 +1551,12 @@
                     document.getElementById('quizScore').textContent = currentQuiz.score % 1 === 0 ? currentQuiz.score : currentQuiz.score.toFixed(1);
                     document.getElementById('questionText').textContent = question.question;
                     
-                    // Reset hint state
                     hintShown = false;
                     document.getElementById('hintBox').style.display = 'none';
                     
-                    // Clear timers
                     if (hintTimer) clearTimeout(hintTimer);
                     if (questionTimer) clearTimeout(questionTimer);
                     
-                    // Set hint timer if hint exists
                     if (question.hint) {
                         hintTimer = setTimeout(() => {
                             if (!hintShown) {
@@ -1394,10 +1564,9 @@
                                 document.getElementById('hintBox').style.display = 'block';
                                 hintShown = true;
                             }
-                        }, 10000); // Show hint after 10 seconds
+                        }, 10000);
                     }
                     
-                    // Show content based on question type
                     const contentDiv = document.getElementById('questionContent');
                     
                     if (question.type === 'route-diagram') {
@@ -1419,7 +1588,6 @@
                         contentDiv.innerHTML = '';
                     }
                     
-                    // Show answer area based on type
                     const answerArea = document.getElementById('answerArea');
                     
                     if (question.answerType === 'type') {
@@ -1455,7 +1623,6 @@
                     const answer = document.getElementById('typeAnswer').value.trim();
                     const question = currentQuiz.questions[currentQuiz.currentIndex];
                     
-                    // More lenient comparison for type answers
                     const isCorrect = answer.toLowerCase() === question.correct.toLowerCase();
                     
                     processAnswer(isCorrect, question.correct, answer);
@@ -1467,23 +1634,19 @@
                 }
 
                 window.processAnswer = function(isCorrect, correct, selected) {
-                    // Clear timers
                     if (hintTimer) clearTimeout(hintTimer);
                     if (questionTimer) clearTimeout(questionTimer);
                     
-                    // Calculate score based on hint usage
                     let pointsEarned = 0;
                     if (isCorrect) {
                         pointsEarned = hintShown ? 0.5 : 1;
                         currentQuiz.score += pointsEarned;
-                        // Update score display immediately
                         const scoreEl = document.getElementById('quizScore');
                         if (scoreEl) {
                             scoreEl.textContent = currentQuiz.score % 1 === 0 ? currentQuiz.score : currentQuiz.score.toFixed(1);
                         }
                     }
                     
-                    // Update UI
                     const question = currentQuiz.questions[currentQuiz.currentIndex];
                     
                     if (question.answerType === 'type') {
@@ -1502,7 +1665,6 @@
                         });
                     }
                     
-                    // Show feedback
                     const feedback = document.getElementById('feedback');
                     feedback.classList.remove('hidden');
                     feedback.style.background = isCorrect ? '#d4edda' : '#f8d7da';
@@ -1530,7 +1692,6 @@
                     const scoreDisplay = currentQuiz.score % 1 === 0 ? currentQuiz.score : currentQuiz.score.toFixed(1);
                     const percentage = Math.round((currentQuiz.score / currentQuiz.questions.length) * 100);
                     
-                    // Update streak
                     const today = new Date();
                     today.setHours(0, 0, 0, 0);
                     
@@ -1551,23 +1712,34 @@
                             currentStreak = 1;
                         }
                         
-                        // Update user stats
                         const pointsEarned = Math.floor(currentQuiz.score);
-                        currentUser.totalScore += pointsEarned;
-                        currentUser.gamesPlayed += 1;
+                        currentUser.totalScore = (currentUser.totalScore || 0) + pointsEarned;
+                        currentUser.gamesPlayed = (currentUser.gamesPlayed || 0) + 1;
                         currentUser.correctAnswers = (currentUser.correctAnswers || 0) + currentQuiz.score;
                         currentUser.currentStreak = currentStreak;
                         
+                        if (!currentUser.gameHistory) currentUser.gameHistory = [];
+                        currentUser.gameHistory.push({
+                            date: new Date(),
+                            score: pointsEarned,
+                            mode: currentQuiz.mode
+                        });
+                        
+                        calculate30DayScore();
+                        
                         db.collection('users').doc(currentUser.username).update({
-                            totalScore: firebase.firestore.FieldValue.increment(pointsEarned),
-                            gamesPlayed: firebase.firestore.FieldValue.increment(1),
-                            correctAnswers: firebase.firestore.FieldValue.increment(currentQuiz.score),
+                            totalScore: currentUser.totalScore,
+                            score30Days: currentUser.score30Days,
+                            gamesPlayed: currentUser.gamesPlayed,
+                            correctAnswers: currentUser.correctAnswers,
                             lastPlayed: new Date(),
-                            currentStreak: currentStreak
+                            currentStreak: currentStreak,
+                            gameHistory: currentUser.gameHistory
                         });
                     }
                     
-                    // Show results
+                    const level = getUserLevel(currentUser ? currentUser.totalScore : 0);
+                    
                     document.getElementById('quizSection').innerHTML = `
                         <div class="section" style="text-align: center;">
                             <h2 style="color: #1e3c72; margin-bottom: 20px;">Quiz Complete 🎉</h2>
@@ -1575,10 +1747,12 @@
                                 <div style="font-size: 3em; font-weight: bold; margin-bottom: 10px;">${scoreDisplay}/${currentQuiz.questions.length}</div>
                                 <div style="font-size: 1.2em; opacity: 0.95;">${percentage}% Accuracy</div>
                             </div>
+                            <div style="color: #666; margin-bottom: 10px;">Level: <strong style="color: ${level.color};">${level.name}</strong></div>
                             ${currentStreak > 1 ? `<div style="color: #666; margin-bottom: 20px;">🔥 ${currentStreak} day streak</div>` : ''}
                             <button class="btn btn-primary" onclick="goHome()">Back to Home</button>
                         </div>
                     `;
+                }
 
                 window.addQuestion = function() {
                     const city = document.getElementById('newCity').value;
@@ -1607,7 +1781,6 @@
                         }
                     }
                     
-                    // Add to Firestore
                     db.collection('questions').add({
                         city: city,
                         mode: mode,
@@ -1632,7 +1805,6 @@
                             </div>
                         `;
                         
-                        // Clear form
                         document.getElementById('newQuestion').value = '';
                         document.getElementById('newCorrect').value = '';
                         document.getElementById('newWrong').value = '';
