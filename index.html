@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Geography Quiz Game</title>
+    <title>Geography Quiz Game - Firebase Edition</title>
     <style>
         * {
             margin: 0;
@@ -55,6 +55,24 @@
             font-size: 1.1em;
         }
 
+        .status-indicator {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.8em;
+            background: rgba(255,255,255,0.2);
+        }
+
+        .status-indicator.online {
+            background: rgba(76, 175, 80, 0.3);
+        }
+
+        .status-indicator.offline {
+            background: rgba(244, 67, 54, 0.3);
+        }
+
         .back-btn {
             position: absolute;
             top: 20px;
@@ -77,66 +95,126 @@
             padding: 30px;
         }
 
-        .city-input-container {
-            position: relative;
-            margin-bottom: 25px;
+        .loading-screen {
+            text-align: center;
+            padding: 60px 20px;
         }
 
-        .city-input {
-            width: 100%;
-            padding: 15px 20px;
-            border: 2px solid #e0e6ed;
-            border-radius: 10px;
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .tab-navigation {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e0e6ed;
+        }
+
+        .tab-btn {
+            padding: 12px 20px;
+            background: none;
+            border: none;
+            color: #666;
+            cursor: pointer;
             font-size: 1em;
+            position: relative;
             transition: all 0.3s ease;
-            background: white;
         }
 
-        .city-input:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102,126,234,0.1);
+        .tab-btn.active {
+            color: #667eea;
         }
 
-        .suggestions-dropdown {
+        .tab-btn.active::after {
+            content: '';
             position: absolute;
-            top: 100%;
+            bottom: -2px;
             left: 0;
             right: 0;
-            background: white;
-            border: 1px solid #e0e6ed;
-            border-radius: 10px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            max-height: 300px;
-            overflow-y: auto;
-            z-index: 1000;
+            height: 2px;
+            background: #667eea;
+        }
+
+        .tab-content {
             display: none;
         }
 
-        .suggestion-item {
-            padding: 12px 20px;
-            cursor: pointer;
-            border-bottom: 1px solid #f1f3f4;
-            transition: background 0.2s ease;
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease-in;
         }
 
-        .suggestion-item:hover {
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        .leaderboard {
             background: #f8f9ff;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
         }
 
-        .suggestion-item:last-child {
+        .leaderboard h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .leaderboard-entry {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #e0e6ed;
+        }
+
+        .leaderboard-entry:last-child {
             border-bottom: none;
         }
 
-        .suggestion-main {
-            font-weight: 500;
-            color: #333;
-        }
-
-        .suggestion-sub {
-            font-size: 0.9em;
-            color: #666;
-            margin-top: 2px;
+        .leaderboard-rank {
+            font-weight: bold;
+            color: #667eea;
+            margin-right: 10px;
         }
 
         .btn {
@@ -149,777 +227,738 @@
             transition: all 0.3s ease;
         }
 
-        .btn-secondary {
-            background: #f1f3f4;
-            color: #333;
-        }
-
-        .btn-secondary:hover {
-            background: #e8eaed;
-        }
-
-        .popular-city-btn {
-            padding: 8px 12px;
-            font-size: 0.9em;
-            transition: all 0.3s ease;
-        }
-
-        .popular-city-btn.selected {
-            background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102,126,234,0.3);
-        }
-
-        .popular-city-btn.selected:hover {
-            background: linear-gradient(45deg, #5a6fd8 0%, #6a4190 100%);
-        }
-
-        .selected-cities {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-top: 15px;
-            min-height: 20px;
-        }
-
-        .city-tag {
-            background: #667eea;
-            color: white;
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 0.9em;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            animation: slideIn 0.3s ease;
-        }
-
-        .city-tag .remove {
-            cursor: pointer;
-            font-weight: bold;
-            opacity: 0.7;
-        }
-
-        .city-tag .remove:hover {
-            opacity: 1;
-        }
-
-        .continue-btn {
-            background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            padding: 15px 30px;
-            border-radius: 10px;
-            font-size: 1.1em;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            width: 100%;
-            margin-top: 20px;
-        }
-
-        .continue-btn:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 30px rgba(102,126,234,0.3);
-        }
-
-        .continue-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .game-mode {
-            background: linear-gradient(45deg, #f093fb 0%, #f5576c 100%);
-            color: white;
-            border: none;
-            padding: 20px;
-            border-radius: 15px;
-            font-size: 1.1em;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-align: left;
-            width: 100%;
-            margin-bottom: 15px;
-        }
-
-        .game-mode:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
-        }
-
-        .game-mode.transit { background: linear-gradient(45deg, #43e97b 0%, #38f9d7 100%); }
-        .game-mode.county { background: linear-gradient(45deg, #fa709a 0%, #fee140 100%); }
-        .game-mode.capital { background: linear-gradient(45deg, #a8edea 0%, #fed6e3 100%); color: #333; }
-        .game-mode.next-station { background: linear-gradient(45deg, #667eea 0%, #764ba2 100%); }
-
-        .quiz-container {
-            display: none;
-            animation: fadeIn 0.5s ease-in;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-
-        .question {
-            background: #f8f9ff;
-            padding: 25px;
-            border-radius: 15px;
-            margin-bottom: 25px;
-            border-left: 5px solid #667eea;
-        }
-
-        .question h3 {
-            font-size: 1.3em;
-            margin-bottom: 15px;
-            color: #333;
-        }
-
-        .map-container {
-            background: #e8f4f8;
-            border: 2px solid #4ECDC4;
-            border-radius: 10px;
-            padding: 20px;
-            margin: 15px 0;
-            text-align: center;
-            min-height: 200px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-style: italic;
-            color: #666;
-        }
-
-        .options {
-            display: grid;
-            gap: 12px;
-            margin-top: 20px;
-        }
-
-        .option {
-            background: white;
-            border: 2px solid #e0e6ed;
-            padding: 15px 20px;
-            border-radius: 10px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            font-size: 1em;
-            text-align: left;
-        }
-
-        .option:hover {
-            border-color: #667eea;
-            background: #f8f9ff;
-            transform: translateX(5px);
-        }
-
-        .option.selected {
-            background: #667eea;
-            color: white;
-            border-color: #667eea;
-        }
-
-        .option.correct {
-            background: #4CAF50;
-            color: white;
-            border-color: #4CAF50;
-        }
-
-        .option.incorrect {
-            background: #f44336;
-            color: white;
-            border-color: #f44336;
-        }
-
-        .controls {
-            display: flex;
-            gap: 15px;
-            justify-content: space-between;
-            margin-top: 25px;
-        }
-
         .btn-primary {
-            background: #667eea;
+            background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
             color: white;
         }
 
         .btn-primary:hover {
-            background: #5a6fd8;
             transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102,126,234,0.3);
         }
 
-        .score {
-            text-align: center;
-            font-size: 1.2em;
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e6ed;
+            border-radius: 8px;
+            font-size: 1em;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .question-editor {
+            background: #f8f9ff;
+            padding: 20px;
+            border-radius: 15px;
             margin-bottom: 20px;
-            color: #667eea;
-            font-weight: bold;
+        }
+
+        .user-info {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            animation: slideIn 0.3s ease;
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            animation: slideIn 0.3s ease;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <button class="back-btn" onclick="showMainMenu()">← Back</button>
+            <button class="back-btn" onclick="goBack()">← Back</button>
+            <div class="status-indicator offline" id="status">Offline</div>
             <h1>🗺️ Geography Quiz</h1>
-            <p>Test your knowledge of places, transit, and regions!</p>
+            <p id="header-subtitle">Connecting to Firebase...</p>
         </div>
         
         <div class="game-content">
-            <!-- Location Selector -->
-            <div id="location-selector">
-                <h2 style="text-align: center; margin-bottom: 25px; color: #333;">What North American cities are you familiar with? 🗺️</h2>
-                <p style="text-align: center; margin-bottom: 30px; color: #666;">Search for cities or pick from popular ones below!</p>
-                
-                <div class="city-input-container">
-                    <input 
-                        type="text" 
-                        class="city-input" 
-                        id="city-input"
-                        placeholder="Search for a city... (e.g., Toronto, Seattle, Boston)"
-                        autocomplete="off"
-                    >
-                    <div class="suggestions-dropdown" id="suggestions-dropdown"></div>
+            <!-- Loading Screen -->
+            <div id="loading-screen" class="loading-screen">
+                <div class="loading-spinner"></div>
+                <p>Setting up your game...</p>
+                <small style="color: #666; margin-top: 10px; display: block;">This may take a few seconds on first load</small>
+            </div>
+
+            <!-- Login Screen -->
+            <div id="login-screen" class="hidden">
+                <div style="text-align: center;">
+                    <h2 style="margin-bottom: 20px; color: #667eea;">Welcome! Let's get started</h2>
+                    <p style="color: #666; margin-bottom: 30px;">Choose a username to track your progress and compete with others!</p>
                 </div>
                 
-                <!-- Popular Cities -->
-                <div style="margin-bottom: 20px;">
-                    <h4 style="color: #333; margin-bottom: 12px; font-size: 0.95em;">🔥 Popular Cities</h4>
-                    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
-                        <button onclick="selectCity('Toronto')" class="btn btn-secondary popular-city-btn" data-city="Toronto">
-                            🍁 Toronto <small style="opacity: 0.7;">(1,247 questions)</small>
-                        </button>
-                        <button onclick="selectCity('Vancouver')" class="btn btn-secondary popular-city-btn" data-city="Vancouver">
-                            🏔️ Vancouver <small style="opacity: 0.7;">(892 questions)</small>
-                        </button>
-                        <button onclick="selectCity('Seattle')" class="btn btn-secondary popular-city-btn" data-city="Seattle">
-                            ☕ Seattle <small style="opacity: 0.7;">(743 questions)</small>
-                        </button>
-                        <button onclick="selectCity('Chicago')" class="btn btn-secondary popular-city-btn" data-city="Chicago">
-                            🏙️ Chicago <small style="opacity: 0.7;">(651 questions)</small>
-                        </button>
-                        <button onclick="selectCity('Montreal')" class="btn btn-secondary popular-city-btn" data-city="Montreal">
-                            ⚜️ Montreal <small style="opacity: 0.7;">(589 questions)</small>
+                <div class="form-group">
+                    <label>Choose Your Username:</label>
+                    <input type="text" id="username-input" placeholder="Enter a cool username..." maxlength="20">
+                    <small style="color: #666;">This will be shown on the leaderboard</small>
+                </div>
+                
+                <button class="btn btn-primary" style="width: 100%;" onclick="createUser()">
+                    Start Playing! 🎮
+                </button>
+            </div>
+
+            <!-- Main Game Interface -->
+            <div id="main-interface" class="hidden">
+                <!-- User Info -->
+                <div class="user-info" id="user-info">
+                    <div>Welcome, <strong id="username-display">Player</strong>!</div>
+                    <small>Total Score: <span id="total-score">0</span> points</small>
+                </div>
+
+                <!-- Tab Navigation -->
+                <div class="tab-navigation" id="tab-navigation">
+                    <button class="tab-btn active" onclick="switchTab('play')">🎮 Play</button>
+                    <button class="tab-btn" onclick="switchTab('leaderboard')">🏆 Leaderboard</button>
+                    <button class="tab-btn" onclick="switchTab('add')">➕ Add Questions</button>
+                    <button class="tab-btn" onclick="switchTab('profile')">👤 Profile</button>
+                </div>
+
+                <!-- Play Tab -->
+                <div class="tab-content active" id="play-tab">
+                    <div style="text-align: center; margin-bottom: 20px;">
+                        <div style="background: #f8f9ff; padding: 15px; border-radius: 10px;">
+                            <h3 style="color: #667eea; margin-bottom: 10px;">🎯 Ready to Quiz?</h3>
+                            <p style="color: #666; font-size: 0.9em;">Questions from the community: <span id="total-questions">0</span></p>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Select City:</label>
+                        <select id="city-select">
+                            <option value="all">All Cities</option>
+                            <option value="Toronto">Toronto</option>
+                            <option value="Vancouver">Vancouver</option>
+                            <option value="Montreal">Montreal</option>
+                            <option value="Chicago">Chicago</option>
+                            <option value="Seattle">Seattle</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Select Game Mode:</label>
+                        <select id="mode-select">
+                            <option value="all">All Modes</option>
+                            <option value="transit">🚇 Transit Challenge</option>
+                            <option value="nextstation">🚉 Next Station</option>
+                            <option value="landmark">🏛️ Landmarks</option>
+                            <option value="neighborhood">🏘️ Neighborhoods</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Number of Questions:</label>
+                        <select id="question-count">
+                            <option value="5">5 Questions (Quick)</option>
+                            <option value="10" selected>10 Questions (Standard)</option>
+                            <option value="20">20 Questions (Marathon)</option>
+                        </select>
+                    </div>
+
+                    <button class="btn btn-primary" style="width: 100%;" onclick="startQuiz()">
+                        Start Quiz! 🚀
+                    </button>
+                </div>
+
+                <!-- Leaderboard Tab -->
+                <div class="tab-content" id="leaderboard-tab">
+                    <div class="leaderboard">
+                        <h3>🏆 Top Players</h3>
+                        <div id="leaderboard-list">
+                            <p style="text-align: center; color: #666;">Loading leaderboard...</p>
+                        </div>
+                    </div>
+                    
+                    <button class="btn" style="background: #28a745; color: white; width: 100%;" onclick="loadLeaderboard()">
+                        Refresh Leaderboard
+                    </button>
+                </div>
+
+                <!-- Add Questions Tab -->
+                <div class="tab-content" id="add-tab">
+                    <div class="question-editor">
+                        <h3 style="color: #667eea; margin-bottom: 15px;">Add a New Question</h3>
+                        
+                        <div class="form-group">
+                            <label>City:</label>
+                            <select id="new-city">
+                                <option value="Toronto">Toronto</option>
+                                <option value="Vancouver">Vancouver</option>
+                                <option value="Montreal">Montreal</option>
+                                <option value="Chicago">Chicago</option>
+                                <option value="Seattle">Seattle</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Game Mode:</label>
+                            <select id="new-mode">
+                                <option value="transit">Transit Challenge</option>
+                                <option value="nextstation">Next Station</option>
+                                <option value="landmark">Landmarks</option>
+                                <option value="neighborhood">Neighborhoods</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Question:</label>
+                            <textarea id="new-question" rows="2" placeholder="e.g., What station comes after Union Station heading north?"></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Correct Answer:</label>
+                            <input type="text" id="new-correct" placeholder="e.g., King Station">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Wrong Options (comma separated):</label>
+                            <input type="text" id="new-wrong" placeholder="e.g., Queen Station, Dundas Station, College Station">
+                        </div>
+
+                        <button class="btn btn-primary" onclick="addQuestion()">Submit Question</button>
+                    </div>
+
+                    <div id="add-feedback"></div>
+                </div>
+
+                <!-- Profile Tab -->
+                <div class="tab-content" id="profile-tab">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-value" id="profile-score">0</div>
+                            <div class="stat-label">Total Score</div>
+                        </div>
+                        <div class="stat-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                            <div class="stat-value" id="profile-games">0</div>
+                            <div class="stat-label">Games Played</div>
+                        </div>
+                        <div class="stat-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                            <div class="stat-value" id="profile-questions">0</div>
+                            <div class="stat-label">Questions Added</div>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 20px;">
+                        <button class="btn" style="background: #dc3545; color: white;" onclick="logout()">
+                            Sign Out
                         </button>
                     </div>
-                </div>
-                
-                <div class="selected-cities" id="selected-cities"></div>
-                
-                <button class="continue-btn" onclick="continueToMain()" id="continue-btn" disabled>
-                    Continue with Selected Cities
-                </button>
-                
-                <div style="text-align: center; margin-top: 15px;">
-                    <button class="btn btn-secondary" onclick="quickStart()">🎲 Quick Start</button>
-                    <button class="btn btn-secondary" onclick="nearbyMode()" style="margin-left: 10px;">📍 Around Me</button>
-                </div>
-            </div>
-        
-            <!-- Main Menu -->
-            <div id="main-menu" style="display: none;">
-                <div style="text-align: center; margin-bottom: 20px;">
-                    <span style="background: #f1f3f4; padding: 8px 16px; border-radius: 20px; font-size: 0.9em; color: #666;">
-                        📍 <span id="current-location">Location</span> | 
-                        <button style="background: none; border: none; color: #667eea; cursor: pointer; text-decoration: underline;" onclick="showLocationSelector()">Change</button>
-                    </span>
-                </div>
-                
-                <div style="background: #f8f9ff; border-radius: 15px; padding: 15px; margin-bottom: 20px; font-size: 0.9em; text-align: center;">
-                    <strong>Question Pool:</strong> <span id="question-count">15 base questions</span>
-                    <br><small style="color: #666;">Questions repeat after 8 others • Focus on your selected cities</small>
-                </div>
-                
-                <div class="game-selector">
-                    <button class="game-mode transit" onclick="startGame('transit')">
-                        <div>🚇 Transit Challenge</div>
-                        <small>Guess the subway/transit station location</small>
-                    </button>
-                    
-                    <button class="game-mode county" onclick="startGame('county')">
-                        <div>🏛️ Regional Geography</div>
-                        <small>Match towns with their counties/regions</small>
-                    </button>
-                    
-                    <button class="game-mode capital" onclick="startGame('capitals')">
-                        <div>🌍 Capital Cities</div>
-                        <small>Test your knowledge of world capitals</small>
-                    </button>
-                    
-                    <button class="game-mode next-station" onclick="startGame('nextstation')">
-                        <div>🚉 Next Station</div>
-                        <small>You're at this station - what's the next stop?</small>
-                    </button>
                 </div>
             </div>
 
             <!-- Quiz Container -->
-            <div id="quiz-container" class="quiz-container">
-                <div class="score">Score: <span id="score">0</span>/<span id="total">6</span></div>
-                
-                <div class="question">
-                    <h3 id="question-text"></h3>
-                    <div id="map-container" class="map-container"></div>
-                    <div id="options" class="options"></div>
+            <div id="quiz-container" class="hidden">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+                    <span style="font-size: 1.2em; color: #667eea;">Q<span id="current-q">1</span>/<span id="total-q">10</span></span>
+                    <span style="font-size: 1.2em; color: #4CAF50;">Score: <span id="quiz-score">0</span></span>
                 </div>
-                
-                <div class="controls">
-                    <button class="btn btn-secondary" onclick="skipQuestion()">Skip</button>
-                    <button class="btn btn-primary" onclick="nextQuestion()" id="next-btn" disabled>Next Question</button>
+
+                <div style="background: #f8f9ff; padding: 20px; border-radius: 15px; margin-bottom: 20px;">
+                    <h3 id="question-text" style="margin-bottom: 20px;"></h3>
+                    <div id="options" style="display: grid; gap: 10px;"></div>
                 </div>
+
+                <div id="feedback" class="hidden" style="padding: 15px; border-radius: 10px; margin-bottom: 20px;"></div>
+
+                <button class="btn btn-primary" id="next-btn" onclick="nextQuestion()" disabled>Next Question</button>
             </div>
         </div>
     </div>
 
+    <!-- STEP 1: Add Firebase Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
     <script>
-        // Global variables
-        let selectedCities = [];
-        let currentGame = '';
-        let currentQuestion = 0;
-        let score = 0;
-        let selectedAnswer = null;
-        let gameData = [];
-        let questionHistory = [];
-
-        // North American cities only (no London UK!)
-        const cities = [
-            // Canada
-            { name: 'Toronto', region: 'Ontario, Canada', emoji: '🍁', questions: 1247 },
-            { name: 'Vancouver', region: 'British Columbia, Canada', emoji: '🏔️', questions: 892 },
-            { name: 'Montreal', region: 'Quebec, Canada', emoji: '⚜️', questions: 589 },
-            { name: 'Calgary', region: 'Alberta, Canada', emoji: '🏔️', questions: 234 },
-            { name: 'Ottawa', region: 'Ontario, Canada', emoji: '🏛️', questions: 187 },
-            { name: 'Edmonton', region: 'Alberta, Canada', emoji: '🏔️', questions: 156 },
-            { name: 'Winnipeg', region: 'Manitoba, Canada', emoji: '🌾', questions: 143 },
-            { name: 'Quebec City', region: 'Quebec, Canada', emoji: '⚜️', questions: 98 },
-            
-            // United States
-            { name: 'Chicago', region: 'Illinois, USA', emoji: '🏙️', questions: 651 },
-            { name: 'Seattle', region: 'Washington, USA', emoji: '☕', questions: 743 },
-            { name: 'San Francisco', region: 'California, USA', emoji: '🌉', questions: 498 },
-            { name: 'Los Angeles', region: 'California, USA', emoji: '🌴', questions: 445 },
-            { name: 'Boston', region: 'Massachusetts, USA', emoji: '🦞', questions: 398 },
-            { name: 'Washington DC', region: 'District of Columbia, USA', emoji: '🏛️', questions: 376 },
-            { name: 'Miami', region: 'Florida, USA', emoji: '🏖️', questions: 287 },
-            { name: 'Philadelphia', region: 'Pennsylvania, USA', emoji: '🔔', questions: 234 },
-            { name: 'Atlanta', region: 'Georgia, USA', emoji: '🍑', questions: 198 },
-            { name: 'Portland', region: 'Oregon, USA', emoji: '🌲', questions: 176 },
-            { name: 'Denver', region: 'Colorado, USA', emoji: '🏔️', questions: 167 },
-            { name: 'Minneapolis', region: 'Minnesota, USA', emoji: '❄️', questions: 134 },
-            { name: 'Detroit', region: 'Michigan, USA', emoji: '🚗', questions: 123 },
-            { name: 'San Diego', region: 'California, USA', emoji: '🏄', questions: 112 },
-            { name: 'Phoenix', region: 'Arizona, USA', emoji: '🌵', questions: 89 },
-            { name: 'Dallas', region: 'Texas, USA', emoji: '🤠', questions: 87 },
-            { name: 'Houston', region: 'Texas, USA', emoji: '🚀', questions: 76 }
-        ];
-
-        // Sample questions
-        const questions = {
-            transit: [
-                {
-                    question: "This subway station is located in which city?",
-                    map: "🚇 Station with distinctive architecture near major landmarks",
-                    options: ["Toronto (TTC)", "Montreal (STM)", "Vancouver (TransLink)", "Calgary (CTrain)"],
-                    correct: 0,
-                    explanation: "This is a TTC station in Toronto."
-                },
-                {
-                    question: "Which transit system does this station belong to?",
-                    map: "🚊 Station with blue and white tile work",
-                    options: ["Boston (MBTA)", "Chicago (CTA)", "Seattle (Sound Transit)", "San Francisco (BART)"],
-                    correct: 3,
-                    explanation: "The distinctive architecture is from BART in San Francisco."
-                },
-                {
-                    question: "This bus rapid transit station is in which city?",
-                    map: "🚌 Modern BRT station with glass canopy",
-                    options: ["Ottawa (OC Transpo)", "Vancouver (TransLink)", "Montreal (STM)", "Toronto (TTC)"],
-                    correct: 0,
-                    explanation: "This is part of Ottawa's Transitway BRT system."
-                }
-            ],
-            county: [
-                {
-                    question: "Elmira, Ontario is located in which township?",
-                    map: "📍 Small town in rural Ontario with Mennonite community",
-                    options: ["Woolwich Township", "Wilmot Township", "Wellesley Township", "North Dumfries"],
-                    correct: 0,
-                    explanation: "Elmira is in Woolwich Township, part of Waterloo Region."
-                },
-                {
-                    question: "New Hamburg, Ontario is located in which township?",
-                    map: "🏘️ Historic town along the Nith River",
-                    options: ["Woolwich Township", "Wilmot Township", "Wellesley Township", "East Zorra-Tavistock"],
-                    correct: 1,
-                    explanation: "New Hamburg is in Wilmot Township, also in Waterloo Region."
-                },
-                {
-                    question: "Stratford, Ontario is the county seat of which county?",
-                    map: "🎭 City famous for its Shakespeare Festival",
-                    options: ["Perth County", "Oxford County", "Huron County", "Wellington County"],
-                    correct: 0,
-                    explanation: "Stratford is the county seat of Perth County."
-                }
-            ],
-            capitals: [
-                {
-                    question: "What is the capital of New Zealand?",
-                    map: "🏛️ Hilly coastal city with distinctive harbor",
-                    options: ["Auckland", "Wellington", "Christchurch", "Hamilton"],
-                    correct: 1,
-                    explanation: "Wellington is New Zealand's capital."
-                },
-                {
-                    question: "What is the capital of Australia?",
-                    map: "🏢 Planned city with modern parliament buildings",
-                    options: ["Sydney", "Melbourne", "Canberra", "Brisbane"],
-                    correct: 2,
-                    explanation: "Canberra was purpose-built as Australia's capital."
-                },
-                {
-                    question: "What is the capital of Canada?",
-                    map: "🍁 City with Gothic Revival parliament buildings",
-                    options: ["Toronto", "Montreal", "Vancouver", "Ottawa"],
-                    correct: 3,
-                    explanation: "Ottawa has been Canada's capital since 1857."
-                }
-            ],
-            nextstation: [
-                {
-                    question: "You're at Union Station in Toronto on the Yonge Line, heading toward Finch. What's the next station?",
-                    map: "🚇 YONGE LINE - Union → Finch direction",
-                    options: ["King", "Queen", "Dundas", "College"],
-                    correct: 2,
-                    explanation: "Dundas is the next northbound station after Union on the Yonge Line."
-                },
-                {
-                    question: "You're at Granville Station in Vancouver on the Expo Line, heading toward King George. What's the next station?",
-                    map: "🚇 EXPO LINE - Granville → King George direction",
-                    options: ["Burrard", "Stadium-Chinatown", "Main Street-Science World", "Commercial-Broadway"],
-                    correct: 1,
-                    explanation: "Stadium-Chinatown is the next stop after Granville going east."
-                },
-                {
-                    question: "You're at State Street Station in Chicago on the Red Line, heading toward Howard. What's the next station?",
-                    map: "🚇 RED LINE - State/Lake → Howard direction",
-                    options: ["Clark/Lake", "Grand", "Chicago", "North/Clybourn"],
-                    correct: 1,
-                    explanation: "Grand is the next northbound Red Line stop after State/Lake."
-                }
-            ]
+        // ============================================
+        // YOUR FIREBASE CONFIG - Already configured!
+        // ============================================
+        const firebaseConfig = {
+            apiKey: "AIza5yCka6MweRe1EThGRTkZjwj-mWswvJGNU",
+            authDomain: "geoquizr.firebaseapp.com",
+            projectId: "geoquizr",
+            storageBucket: "geoquizr.firebasestorage.app",
+            messagingSenderId: "628669854362",
+            appId: "1:628669854362:web:72e9fc1f98ec55598ac023"
         };
 
-        // City selection functions
-        function selectCity(cityName) {
-            console.log('Selecting city:', cityName);
-            const city = cities.find(c => c.name === cityName);
-            if (!city) {
-                console.log('City not found:', cityName);
-                return;
-            }
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
 
-            // Check if already selected
-            if (selectedCities.some(c => c.name === city.name)) {
-                console.log('City already selected');
-                return;
-            }
+        // ============================================
+        // GAME CODE STARTS HERE
+        // ============================================
+        
+        // Global variables
+        let currentUser = null;
+        let currentQuiz = null;
+        let allQuestions = [];
 
-            selectedCities.push(city);
-            updateDisplay();
-        }
-
-        function removeCity(index) {
-            console.log('Removing city at index:', index);
-            if (index >= 0 && index < selectedCities.length) {
-                selectedCities.splice(index, 1);
-                updateDisplay();
-            }
-        }
-
-        function updateDisplay() {
-            updatePopularButtons();
-            updateSelectedCities();
-            updateContinueButton();
-        }
-
-        function updatePopularButtons() {
-            const buttons = document.querySelectorAll('.popular-city-btn');
-            buttons.forEach(button => {
-                const cityName = button.getAttribute('data-city');
-                if (selectedCities.some(city => city.name === cityName)) {
-                    button.classList.add('selected');
-                } else {
-                    button.classList.remove('selected');
-                }
-            });
-        }
-
-        function updateSelectedCities() {
-            const container = document.getElementById('selected-cities');
-            const popularCities = ['Toronto', 'Vancouver', 'Seattle', 'Chicago', 'Montreal'];
-            
-            // Only show tags for non-popular cities
-            const nonPopularSelected = selectedCities.filter(city => !popularCities.includes(city.name));
-            
-            if (nonPopularSelected.length === 0) {
-                container.innerHTML = '';
-            } else {
-                container.innerHTML = nonPopularSelected.map((city, index) => {
-                    const realIndex = selectedCities.indexOf(city);
-                    return `
-                        <div class="city-tag">
-                            ${city.emoji} ${city.name}
-                            <span class="remove" onclick="removeCity(${realIndex})">&times;</span>
-                        </div>
-                    `;
-                }).join('');
-            }
-        }
-
-        function updateContinueButton() {
-            const btn = document.getElementById('continue-btn');
-            btn.disabled = selectedCities.length === 0;
-            
-            if (selectedCities.length === 1) {
-                btn.textContent = `Continue with ${selectedCities[0].name}`;
-            } else if (selectedCities.length > 1) {
-                btn.textContent = `Continue with ${selectedCities.length} Cities`;
-            } else {
-                btn.textContent = 'Continue with Selected Cities';
-            }
-        }
-
-        // Navigation functions
-        function continueToMain() {
-            if (selectedCities.length === 0) {
-                alert('Please select at least one city first!');
-                return;
-            }
-            
-            document.getElementById('location-selector').style.display = 'none';
-            document.getElementById('main-menu').style.display = 'block';
-            
-            const cityNames = selectedCities.map(city => city.name).join(', ');
-            document.getElementById('current-location').textContent = 
-                cityNames.length > 30 ? `${selectedCities.length} Cities` : cityNames;
-            
-            const totalQuestions = Object.values(questions).reduce((sum, arr) => sum + arr.length, 0);
-            const selectedQuestions = selectedCities.reduce((sum, city) => sum + city.questions, 0);
-            
-            document.getElementById('question-count').innerHTML = 
-                `${totalQuestions} base + ${selectedQuestions.toLocaleString()} location-specific`;
-        }
-
-        function showMainMenu() {
-            document.getElementById('location-selector').style.display = 'none';
-            document.getElementById('main-menu').style.display = 'block';
-            document.getElementById('quiz-container').style.display = 'none';
-            document.querySelector('.back-btn').style.display = 'none';
-        }
-
-        function showLocationSelector() {
-            document.getElementById('location-selector').style.display = 'block';
-            document.getElementById('main-menu').style.display = 'none';
-        }
-
-        function quickStart() {
-            const popularCities = ['Toronto', 'Vancouver', 'Seattle', 'Chicago', 'Montreal'];
-            const randomCity = cities.find(c => popularCities.includes(c.name));
-            selectedCities = [randomCity];
-            continueToMain();
-        }
-
-        function nearbyMode() {
-            const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-            let defaultCity = cities.find(c => c.name === 'Toronto');
-            
-            if (timezone.includes('Pacific')) {
-                defaultCity = cities.find(c => c.name === 'Vancouver') || cities.find(c => c.name === 'Seattle');
-            } else if (timezone.includes('Mountain')) {
-                defaultCity = cities.find(c => c.name === 'Calgary') || cities.find(c => c.name === 'Denver');
-            } else if (timezone.includes('Central')) {
-                defaultCity = cities.find(c => c.name === 'Chicago');
-            }
-            
-            selectedCities = [defaultCity];
-            continueToMain();
-        }
-
-        // Search functionality
-        function initializeSearch() {
-            const input = document.getElementById('city-input');
-            const dropdown = document.getElementById('suggestions-dropdown');
-            
-            if (!input || !dropdown) return;
-            
-            input.addEventListener('input', function(e) {
-                const query = e.target.value.toLowerCase().trim();
-                
-                if (query.length < 1) {
-                    dropdown.style.display = 'none';
-                    return;
-                }
-                
-                const matches = cities
-                    .filter(city => 
-                        city.name.toLowerCase().includes(query) || 
-                        city.region.toLowerCase().includes(query)
-                    )
-                    .sort((a, b) => b.questions - a.questions)
-                    .slice(0, 8);
-                
-                if (matches.length === 0) {
-                    dropdown.style.display = 'none';
-                    return;
-                }
-                
-                dropdown.innerHTML = matches.map(city => `
-                    <div class="suggestion-item" onclick="selectCity('${city.name}')">
-                        <div class="suggestion-main">${city.emoji} ${city.name}</div>
-                        <div class="suggestion-sub">${city.region} • ${city.questions} questions</div>
+        // Check if Firebase is connected
+        function checkConnection() {
+            db.collection('_heartbeat').doc('test').set({
+                timestamp: new Date()
+            }).then(() => {
+                console.log('Firebase connected!');
+                document.getElementById('status').textContent = '🟢 Online';
+                document.getElementById('status').classList.remove('offline');
+                document.getElementById('status').classList.add('online');
+                document.getElementById('header-subtitle').textContent = 'Connected to Firebase!';
+                initializeApp();
+            }).catch(error => {
+                console.error('Firebase connection error:', error);
+                document.getElementById('status').textContent = '🔴 Offline';
+                document.getElementById('header-subtitle').textContent = 'Connection error - Check console';
+                document.getElementById('loading-screen').innerHTML = `
+                    <div style="color: #dc3545;">
+                        <h3>Connection Error</h3>
+                        <p>Could not connect to Firebase.</p>
+                        <p style="font-size: 0.9em; margin-top: 10px;">Did you add your Firebase config?</p>
+                        <button class="btn btn-primary" onclick="location.reload()">Try Again</button>
                     </div>
-                `).join('');
-                
-                dropdown.style.display = 'block';
+                `;
             });
+        }
+
+        // Initialize app
+        function initializeApp() {
+            // Check for existing user
+            const savedUsername = localStorage.getItem('geoQuizUsername');
+            if (savedUsername) {
+                loadUser(savedUsername);
+            } else {
+                document.getElementById('loading-screen').classList.add('hidden');
+                document.getElementById('login-screen').classList.remove('hidden');
+            }
+        }
+
+        // Create new user
+        function createUser() {
+            const username = document.getElementById('username-input').value.trim();
             
-            document.addEventListener('click', function(e) {
-                if (!input.contains(e.target) && !dropdown.contains(e.target)) {
-                    dropdown.style.display = 'none';
+            if (!username) {
+                alert('Please enter a username!');
+                return;
+            }
+
+            if (username.length < 3) {
+                alert('Username must be at least 3 characters!');
+                return;
+            }
+
+            // Check if username exists
+            db.collection('users').doc(username).get().then(doc => {
+                if (doc.exists) {
+                    if (confirm(`Welcome back ${username}! Load your existing profile?`)) {
+                        loadUser(username);
+                    }
+                } else {
+                    // Create new user
+                    db.collection('users').doc(username).set({
+                        username: username,
+                        totalScore: 0,
+                        gamesPlayed: 0,
+                        questionsAdded: 0,
+                        joinedAt: new Date(),
+                        lastPlayed: new Date()
+                    }).then(() => {
+                        localStorage.setItem('geoQuizUsername', username);
+                        loadUser(username);
+                    }).catch(error => {
+                        console.error('Error creating user:', error);
+                        alert('Error creating user. Please try again.');
+                    });
                 }
             });
         }
 
-        // Game functions
-        function startGame(gameType) {
-            currentGame = gameType;
-            currentQuestion = 0;
-            score = 0;
-            selectedAnswer = null;
-            
-            gameData = shuffleArray(questions[gameType] || []).slice(0, 6);
-            
-            document.getElementById('main-menu').style.display = 'none';
-            document.getElementById('quiz-container').style.display = 'block';
-            document.querySelector('.back-btn').style.display = 'block';
-            
-            document.getElementById('total').textContent = gameData.length;
-            document.getElementById('score').textContent = '0';
-            
-            loadQuestion();
+        // Load user data
+        function loadUser(username) {
+            db.collection('users').doc(username).get().then(doc => {
+                if (doc.exists) {
+                    currentUser = doc.data();
+                    currentUser.username = username;
+                    
+                    // Update UI
+                    document.getElementById('username-display').textContent = username;
+                    document.getElementById('total-score').textContent = currentUser.totalScore || 0;
+                    
+                    // Show main interface
+                    document.getElementById('loading-screen').classList.add('hidden');
+                    document.getElementById('login-screen').classList.add('hidden');
+                    document.getElementById('main-interface').classList.remove('hidden');
+                    document.getElementById('header-subtitle').textContent = 'Test your knowledge!';
+                    
+                    // Load questions and leaderboard
+                    loadQuestions();
+                    loadLeaderboard();
+                    updateProfile();
+                }
+            });
         }
 
-        function loadQuestion() {
-            if (currentQuestion >= gameData.length) {
-                showGameSummary();
+        // Load questions from Firestore
+        function loadQuestions() {
+            db.collection('questions').get().then(snapshot => {
+                allQuestions = [];
+                snapshot.forEach(doc => {
+                    allQuestions.push({
+                        id: doc.id,
+                        ...doc.data()
+                    });
+                });
+                document.getElementById('total-questions').textContent = allQuestions.length;
+                console.log(`Loaded ${allQuestions.length} questions`);
+            }).catch(error => {
+                console.error('Error loading questions:', error);
+            });
+        }
+
+        // Start quiz
+        function startQuiz() {
+            const city = document.getElementById('city-select').value;
+            const mode = document.getElementById('mode-select').value;
+            const count = parseInt(document.getElementById('question-count').value);
+            
+            // Filter questions
+            let filtered = allQuestions;
+            
+            if (city !== 'all') {
+                filtered = filtered.filter(q => q.city === city);
+            }
+            
+            if (mode !== 'all') {
+                filtered = filtered.filter(q => q.mode === mode);
+            }
+            
+            if (filtered.length === 0) {
+                alert('No questions available for this selection. Try different options or add some questions!');
                 return;
             }
             
-            const question = gameData[currentQuestion];
+            // Shuffle and select questions
+            const shuffled = filtered.sort(() => Math.random() - 0.5);
+            const selected = shuffled.slice(0, Math.min(count, shuffled.length));
             
+            // Initialize quiz
+            currentQuiz = {
+                questions: selected,
+                currentIndex: 0,
+                score: 0,
+                startTime: new Date()
+            };
+            
+            // Show quiz interface
+            document.getElementById('main-interface').classList.add('hidden');
+            document.getElementById('quiz-container').classList.remove('hidden');
+            document.querySelector('.back-btn').style.display = 'block';
+            document.getElementById('header-subtitle').textContent = 'Good luck!';
+            
+            document.getElementById('total-q').textContent = selected.length;
+            
+            showQuestion();
+        }
+
+        // Show current question
+        function showQuestion() {
+            if (currentQuiz.currentIndex >= currentQuiz.questions.length) {
+                endQuiz();
+                return;
+            }
+            
+            const question = currentQuiz.questions[currentQuiz.currentIndex];
+            
+            document.getElementById('current-q').textContent = currentQuiz.currentIndex + 1;
+            document.getElementById('quiz-score').textContent = currentQuiz.score;
             document.getElementById('question-text').textContent = question.question;
-            document.getElementById('map-container').textContent = question.map;
             
+            // Create options
+            const options = [question.correct, ...question.wrong].sort(() => Math.random() - 0.5);
             const optionsContainer = document.getElementById('options');
             optionsContainer.innerHTML = '';
             
-            question.options.forEach((option, index) => {
-                const optionElement = document.createElement('div');
-                optionElement.className = 'option';
-                optionElement.textContent = option;
-                optionElement.onclick = () => selectAnswer(index, optionElement);
-                optionsContainer.appendChild(optionElement);
+            options.forEach(option => {
+                const btn = document.createElement('button');
+                btn.className = 'btn';
+                btn.style.background = '#f1f3f4';
+                btn.style.width = '100%';
+                btn.textContent = option;
+                btn.onclick = () => checkAnswer(option, question.correct);
+                optionsContainer.appendChild(btn);
             });
             
-            selectedAnswer = null;
+            // Reset feedback
+            document.getElementById('feedback').classList.add('hidden');
             document.getElementById('next-btn').disabled = true;
         }
 
-        function selectAnswer(answerIndex, element) {
-            document.querySelectorAll('.option').forEach(opt => {
-                opt.classList.remove('selected', 'correct', 'incorrect');
-            });
+        // Check answer
+        function checkAnswer(selected, correct) {
+            const isCorrect = selected === correct;
             
-            selectedAnswer = answerIndex;
-            element.classList.add('selected');
+            if (isCorrect) {
+                currentQuiz.score++;
+            }
+            
+            // Visual feedback
+            const options = document.getElementById('options').children;
+            for (let btn of options) {
+                if (btn.textContent === correct) {
+                    btn.style.background = '#4CAF50';
+                    btn.style.color = 'white';
+                } else if (btn.textContent === selected && !isCorrect) {
+                    btn.style.background = '#f44336';
+                    btn.style.color = 'white';
+                }
+                btn.onclick = null;
+            }
+            
+            // Show feedback
+            const feedback = document.getElementById('feedback');
+            feedback.classList.remove('hidden');
+            feedback.style.background = isCorrect ? '#d4edda' : '#f8d7da';
+            feedback.style.color = isCorrect ? '#155724' : '#721c24';
+            feedback.innerHTML = `<strong>${isCorrect ? '✓ Correct!' : '✗ Incorrect'}</strong><br>The answer is: ${correct}`;
+            
+            // Enable next button
             document.getElementById('next-btn').disabled = false;
         }
 
+        // Next question
         function nextQuestion() {
-            if (selectedAnswer === null) return;
+            currentQuiz.currentIndex++;
+            showQuestion();
+        }
+
+        // End quiz
+        function endQuiz() {
+            const percentage = Math.round((currentQuiz.score / currentQuiz.questions.length) * 100);
             
-            const question = gameData[currentQuestion];
-            const options = document.querySelectorAll('.option');
-            const isCorrect = selectedAnswer === question.correct;
+            // Update user stats
+            const updates = {
+                totalScore: firebase.firestore.FieldValue.increment(currentQuiz.score),
+                gamesPlayed: firebase.firestore.FieldValue.increment(1),
+                lastPlayed: new Date()
+            };
             
-            options.forEach((option, index) => {
-                if (index === question.correct) {
-                    option.classList.add('correct');
-                } else if (index === selectedAnswer && !isCorrect) {
-                    option.classList.add('incorrect');
-                }
-                option.onclick = null;
+            db.collection('users').doc(currentUser.username).update(updates).then(() => {
+                currentUser.totalScore += currentQuiz.score;
+                currentUser.gamesPlayed += 1;
             });
             
-            if (isCorrect) {
-                score++;
-                document.getElementById('score').textContent = score;
+            // Show results
+            document.getElementById('quiz-container').innerHTML = `
+                <div style="text-align: center; padding: 40px;">
+                    <h2 style="color: #667eea; margin-bottom: 20px;">Quiz Complete! 🎉</h2>
+                    <div class="stat-card" style="max-width: 300px; margin: 0 auto 20px;">
+                        <div class="stat-value">${currentQuiz.score}/${currentQuiz.questions.length}</div>
+                        <div class="stat-label">${percentage}% Accuracy</div>
+                    </div>
+                    <p style="color: #666; margin-bottom: 20px;">
+                        You earned ${currentQuiz.score} points!
+                    </p>
+                    <button class="btn btn-primary" onclick="goBack()">Back to Menu</button>
+                </div>
+            `;
+        }
+
+        // Add new question
+        function addQuestion() {
+            const city = document.getElementById('new-city').value;
+            const mode = document.getElementById('new-mode').value;
+            const question = document.getElementById('new-question').value.trim();
+            const correct = document.getElementById('new-correct').value.trim();
+            const wrong = document.getElementById('new-wrong').value.trim();
+            
+            if (!question || !correct || !wrong) {
+                alert('Please fill in all fields!');
+                return;
             }
             
-            document.getElementById('map-container').innerHTML = 
-                `<div style="color: ${isCorrect ? '#4CAF50' : '#f44336'}; font-style: normal;">
-                    <strong>${isCorrect ? '✓ Correct!' : '✗ Incorrect'}</strong><br><br>${question.explanation}
-                </div>`;
+            const wrongOptions = wrong.split(',').map(opt => opt.trim()).filter(opt => opt);
+            if (wrongOptions.length < 3) {
+                alert('Please provide at least 3 wrong options!');
+                return;
+            }
             
-            currentQuestion++;
+            // Add to Firestore
+            db.collection('questions').add({
+                city: city,
+                mode: mode,
+                question: question,
+                correct: correct,
+                wrong: wrongOptions.slice(0, 3),
+                addedBy: currentUser.username,
+                addedAt: new Date()
+            }).then(() => {
+                // Update user stats
+                db.collection('users').doc(currentUser.username).update({
+                    questionsAdded: firebase.firestore.FieldValue.increment(1)
+                });
+                
+                // Show success message
+                document.getElementById('add-feedback').innerHTML = `
+                    <div class="success-message">
+                        ✓ Question added successfully! Thanks for contributing!
+                    </div>
+                `;
+                
+                // Clear form
+                document.getElementById('new-question').value = '';
+                document.getElementById('new-correct').value = '';
+                document.getElementById('new-wrong').value = '';
+                
+                // Reload questions
+                loadQuestions();
+                
+                // Clear message after 3 seconds
+                setTimeout(() => {
+                    document.getElementById('add-feedback').innerHTML = '';
+                }, 3000);
+            }).catch(error => {
+                console.error('Error adding question:', error);
+                document.getElementById('add-feedback').innerHTML = `
+                    <div class="error-message">
+                        ✗ Error adding question. Please try again.
+                    </div>
+                `;
+            });
+        }
+
+        // Load leaderboard
+        function loadLeaderboard() {
+            db.collection('users')
+                .orderBy('totalScore', 'desc')
+                .limit(10)
+                .get()
+                .then(snapshot => {
+                    let html = '';
+                    let rank = 1;
+                    
+                    snapshot.forEach(doc => {
+                        const user = doc.data();
+                        html += `
+                            <div class="leaderboard-entry">
+                                <div>
+                                    <span class="leaderboard-rank">#${rank}</span>
+                                    ${doc.id}
+                                </div>
+                                <div>${user.totalScore} pts</div>
+                            </div>
+                        `;
+                        rank++;
+                    });
+                    
+                    if (html === '') {
+                        html = '<p style="text-align: center; color: #666;">No scores yet. Be the first!</p>';
+                    }
+                    
+                    document.getElementById('leaderboard-list').innerHTML = html;
+                });
+        }
+
+        // Update profile
+        function updateProfile() {
+            document.getElementById('profile-score').textContent = currentUser.totalScore || 0;
+            document.getElementById('profile-games').textContent = currentUser.gamesPlayed || 0;
+            document.getElementById('profile-questions').textContent = currentUser.questionsAdded || 0;
+        }
+
+        // Tab switching
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
             
-            if (currentQuestion >= gameData.length) {
-                document.getElementById('next-btn').textContent = 'Finish Game';
-                setTimeout(showGameSummary, 2000);
-            } else {
-                setTimeout(loadQuestion, 3000);
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+            
+            if (tabName === 'leaderboard') {
+                loadLeaderboard();
+            } else if (tabName === 'profile') {
+                updateProfile();
             }
         }
 
-        function skipQuestion() {
-            currentQuestion++;
-            if (currentQuestion >= gameData.length) {
-                showGameSummary();
-            } else {
-                loadQuestion();
-            }
-        }
-
-        function showGameSummary() {
-            const percentage = Math.round((score / gameData.length) * 100);
-            let message = `Game Complete!\nScore: ${score}/${gameData.length} (${percentage}%)`;
+        // Navigation
+        function goBack() {
+            document.getElementById('quiz-container').classList.add('hidden');
+            document.getElementById('main-interface').classList.remove('hidden');
+            document.querySelector('.back-btn').style.display = 'none';
+            document.getElementById('header-subtitle').textContent = 'Test your knowledge!';
             
-            if (selectedCities.length > 0) {
-                const cityNames = selectedCities.map(c => c.name).join(', ');
-                message += `\n\nFocused on: ${cityNames}`;
-            }
+            // Reset quiz container for next time
+            document.getElementById('quiz-container').innerHTML = `
+                <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+                    <span style="font-size: 1.2em; color: #667eea;">Q<span id="current-q">1</span>/<span id="total-q">10</span></span>
+                    <span style="font-size: 1.2em; color: #4CAF50;">Score: <span id="quiz-score">0</span></span>
+                </div>
+
+                <div style="background: #f8f9ff; padding: 20px; border-radius: 15px; margin-bottom: 20px;">
+                    <h3 id="question-text" style="margin-bottom: 20px;"></h3>
+                    <div id="options" style="display: grid; gap: 10px;"></div>
+                </div>
+
+                <div id="feedback" class="hidden" style="padding: 15px; border-radius: 10px; margin-bottom: 20px;"></div>
+
+                <button class="btn btn-primary" id="next-btn" onclick="nextQuestion()" disabled>Next Question</button>
+            `;
             
-            alert(message);
-            showMainMenu();
+            loadQuestions();
         }
 
-        function shuffleArray(array) {
-            const shuffled = [...array];
-            for (let i = shuffled.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        // Logout
+        function logout() {
+            if (confirm('Are you sure you want to sign out?')) {
+                localStorage.removeItem('geoQuizUsername');
+                location.reload();
             }
-            return shuffled;
         }
 
-        // Initialize when page loads
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('Geography Quiz loaded successfully');
-            initializeSearch();
-            updateDisplay();
+        // Start app when page loads
+        window.addEventListener('DOMContentLoaded', () => {
+            checkConnection();
         });
     </script>
 </body>
