@@ -506,11 +506,35 @@
         </div>
     </div>
 
-    <!-- STEP 1: Add Firebase Scripts -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <!-- Firebase Scripts - Updated CDN Links -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
     <script>
+        // Wait for Firebase to load
+        window.addEventListener('load', function() {
+            if (typeof firebase === 'undefined') {
+                console.error('Firebase failed to load. Trying alternative method...');
+                // Try loading Firebase a different way
+                const script1 = document.createElement('script');
+                script1.src = 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js';
+                script1.onload = function() {
+                    const script2 = document.createElement('script');
+                    script2.src = 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js';
+                    script2.onload = function() {
+                        initializeFirebase();
+                    };
+                    document.head.appendChild(script2);
+                };
+                document.head.appendChild(script1);
+            } else {
+                initializeFirebase();
+            }
+        });
+    </script>
+
+    <script>
+        function initializeFirebase() {
         // ============================================
         // YOUR FIREBASE CONFIG - Already configured!
         // ============================================
@@ -524,8 +548,22 @@
         };
 
         // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
+        try {
+            firebase.initializeApp(firebaseConfig);
+            window.db = firebase.firestore();
+            console.log('Firebase initialized successfully!');
+            checkConnection();
+        } catch (error) {
+            console.error('Error initializing Firebase:', error);
+            document.getElementById('loading-screen').innerHTML = `
+                <div style="color: #dc3545;">
+                    <h3>Firebase Loading Error</h3>
+                    <p>${error.message}</p>
+                    <button class="btn btn-primary" onclick="location.reload()">Try Again</button>
+                </div>
+            `;
+        }
+    }
 
         // ============================================
         // GAME CODE STARTS HERE
@@ -538,7 +576,11 @@
 
         // Check if Firebase is connected
         function checkConnection() {
-            db.collection('_heartbeat').doc('test').set({
+            if (!window.db) {
+                window.db = firebase.firestore();
+            }
+            
+            window.db.collection('_heartbeat').doc('test').set({
                 timestamp: new Date()
             }).then(() => {
                 console.log('Firebase connected!');
@@ -555,7 +597,7 @@
                     <div style="color: #dc3545;">
                         <h3>Connection Error</h3>
                         <p>Could not connect to Firebase.</p>
-                        <p style="font-size: 0.9em; margin-top: 10px;">Did you add your Firebase config?</p>
+                        <p style="font-size: 0.9em; margin-top: 10px;">${error.message}</p>
                         <button class="btn btn-primary" onclick="location.reload()">Try Again</button>
                     </div>
                 `;
@@ -589,14 +631,14 @@
             }
 
             // Check if username exists
-            db.collection('users').doc(username).get().then(doc => {
+            window.db.collection('users').doc(username).get().then(doc => {
                 if (doc.exists) {
                     if (confirm(`Welcome back ${username}! Load your existing profile?`)) {
                         loadUser(username);
                     }
                 } else {
                     // Create new user
-                    db.collection('users').doc(username).set({
+                    window.db.collection('users').doc(username).set({
                         username: username,
                         totalScore: 0,
                         gamesPlayed: 0,
@@ -616,7 +658,7 @@
 
         // Load user data
         function loadUser(username) {
-            db.collection('users').doc(username).get().then(doc => {
+            window.db.collection('users').doc(username).get().then(doc => {
                 if (doc.exists) {
                     currentUser = doc.data();
                     currentUser.username = username;
@@ -641,7 +683,7 @@
 
         // Load questions from Firestore
         function loadQuestions() {
-            db.collection('questions').get().then(snapshot => {
+            window.db.collection('questions').get().then(snapshot => {
                 allQuestions = [];
                 snapshot.forEach(doc => {
                     allQuestions.push({
@@ -783,7 +825,7 @@
                 lastPlayed: new Date()
             };
             
-            db.collection('users').doc(currentUser.username).update(updates).then(() => {
+            window.db.collection('users').doc(currentUser.username).update(updates).then(() => {
                 currentUser.totalScore += currentQuiz.score;
                 currentUser.gamesPlayed += 1;
             });
@@ -824,7 +866,7 @@
             }
             
             // Add to Firestore
-            db.collection('questions').add({
+            window.db.collection('questions').add({
                 city: city,
                 mode: mode,
                 question: question,
@@ -834,7 +876,7 @@
                 addedAt: new Date()
             }).then(() => {
                 // Update user stats
-                db.collection('users').doc(currentUser.username).update({
+                window.db.collection('users').doc(currentUser.username).update({
                     questionsAdded: firebase.firestore.FieldValue.increment(1)
                 });
                 
@@ -955,11 +997,6 @@
                 location.reload();
             }
         }
-
-        // Start app when page loads
-        window.addEventListener('DOMContentLoaded', () => {
-            checkConnection();
-        });
     </script>
 </body>
 </html>
