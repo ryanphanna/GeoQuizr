@@ -3,53 +3,208 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Geography Quiz</title>
+    <title>Geography Quiz Game</title>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Arial', sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin: 0;
             color: #333;
         }
+
         .container {
             background: white;
             border-radius: 20px;
             box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            max-width: 500px;
+            max-width: 600px;
             width: 90%;
+            overflow: hidden;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateY(30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .header {
+            background: linear-gradient(45deg, #FF6B6B, #4ECDC4);
+            padding: 30px;
+            text-align: center;
+            color: white;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 2.2em;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .back-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9em;
+            display: none;
+        }
+
+        .back-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .game-content {
             padding: 30px;
         }
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
+
+        .city-input-container {
+            position: relative;
+            margin-bottom: 25px;
         }
-        .header h1 {
-            color: #667eea;
-            margin-bottom: 10px;
-        }
-        .city-btn {
-            background: #f1f3f4;
-            border: none;
-            padding: 12px 16px;
-            margin: 5px;
+
+        .city-input {
+            width: 100%;
+            padding: 15px 20px;
+            border: 2px solid #e0e6ed;
             border-radius: 10px;
+            font-size: 1em;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .city-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102,126,234,0.1);
+        }
+
+        .suggestions-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #e0e6ed;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+        }
+
+        .suggestion-item {
+            padding: 12px 20px;
+            cursor: pointer;
+            border-bottom: 1px solid #f1f3f4;
+            transition: background 0.2s ease;
+        }
+
+        .suggestion-item:hover {
+            background: #f8f9ff;
+        }
+
+        .suggestion-item:last-child {
+            border-bottom: none;
+        }
+
+        .suggestion-main {
+            font-weight: 500;
+            color: #333;
+        }
+
+        .suggestion-sub {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 2px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: bold;
             cursor: pointer;
             transition: all 0.3s ease;
         }
-        .city-btn:hover {
-            background: #e8eaed;
-            transform: translateY(-2px);
+
+        .btn-secondary {
+            background: #f1f3f4;
+            color: #333;
         }
-        .city-btn.selected {
+
+        .btn-secondary:hover {
+            background: #e8eaed;
+        }
+
+        .popular-city-btn {
+            padding: 8px 12px;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+        }
+
+        .popular-city-btn.selected {
             background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
             color: white;
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(102,126,234,0.3);
         }
+
+        .popular-city-btn.selected:hover {
+            background: linear-gradient(45deg, #5a6fd8 0%, #6a4190 100%);
+        }
+
+        .selected-cities {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 15px;
+            min-height: 20px;
+        }
+
+        .city-tag {
+            background: #667eea;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            animation: slideIn 0.3s ease;
+        }
+
+        .city-tag .remove {
+            cursor: pointer;
+            font-weight: bold;
+            opacity: 0.7;
+        }
+
+        .city-tag .remove:hover {
+            opacity: 1;
+        }
+
         .continue-btn {
             background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
             color: white;
@@ -59,62 +214,143 @@
             font-size: 1.1em;
             font-weight: bold;
             cursor: pointer;
+            transition: all 0.3s ease;
             width: 100%;
             margin-top: 20px;
-            transition: all 0.3s ease;
         }
+
         .continue-btn:hover:not(:disabled) {
             transform: translateY(-2px);
             box-shadow: 0 10px 30px rgba(102,126,234,0.3);
         }
+
         .continue-btn:disabled {
             opacity: 0.5;
             cursor: not-allowed;
         }
+
         .game-mode {
-            background: linear-gradient(45deg, #43e97b 0%, #38f9d7 100%);
+            background: linear-gradient(45deg, #f093fb 0%, #f5576c 100%);
             color: white;
             border: none;
             padding: 20px;
             border-radius: 15px;
+            font-size: 1.1em;
             font-weight: bold;
             cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: left;
             width: 100%;
             margin-bottom: 15px;
-            text-align: left;
-            transition: all 0.3s ease;
         }
+
         .game-mode:hover {
             transform: translateY(-2px);
             box-shadow: 0 10px 20px rgba(0,0,0,0.2);
         }
+
+        .game-mode.transit { background: linear-gradient(45deg, #43e97b 0%, #38f9d7 100%); }
+        .game-mode.county { background: linear-gradient(45deg, #fa709a 0%, #fee140 100%); }
+        .game-mode.capital { background: linear-gradient(45deg, #a8edea 0%, #fed6e3 100%); color: #333; }
+        .game-mode.next-station { background: linear-gradient(45deg, #667eea 0%, #764ba2 100%); }
+
+        .quiz-container {
+            display: none;
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .question {
+            background: #f8f9ff;
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+            border-left: 5px solid #667eea;
+        }
+
+        .question h3 {
+            font-size: 1.3em;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .map-container {
+            background: #e8f4f8;
+            border: 2px solid #4ECDC4;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 15px 0;
+            text-align: center;
+            min-height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-style: italic;
+            color: #666;
+        }
+
+        .options {
+            display: grid;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
         .option {
             background: white;
             border: 2px solid #e0e6ed;
-            padding: 15px;
-            margin: 10px 0;
+            padding: 15px 20px;
             border-radius: 10px;
             cursor: pointer;
             transition: all 0.2s ease;
+            font-size: 1em;
+            text-align: left;
         }
+
         .option:hover {
             border-color: #667eea;
             background: #f8f9ff;
+            transform: translateX(5px);
         }
+
         .option.selected {
             background: #667eea;
             color: white;
             border-color: #667eea;
         }
+
         .option.correct {
             background: #4CAF50;
             color: white;
+            border-color: #4CAF50;
         }
+
         .option.incorrect {
             background: #f44336;
             color: white;
+            border-color: #f44336;
         }
-        .hidden { display: none; }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            justify-content: space-between;
+            margin-top: 25px;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5a6fd8;
+            transform: translateY(-2px);
+        }
+
         .score {
             text-align: center;
             font-size: 1.2em;
@@ -122,258 +358,510 @@
             color: #667eea;
             font-weight: bold;
         }
-        .question {
-            background: #f8f9ff;
-            padding: 20px;
-            border-radius: 15px;
-            margin-bottom: 20px;
-            border-left: 5px solid #667eea;
-        }
-        .controls {
-            display: flex;
-            gap: 15px;
-            margin-top: 20px;
-        }
-        .btn {
-            padding: 12px 24px;
-            border: none;
-            border-radius: 8px;
-            font-weight: bold;
-            cursor: pointer;
-            flex: 1;
-        }
-        .btn-secondary { background: #f1f3f4; color: #333; }
-        .btn-primary { background: #667eea; color: white; }
-        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- Step 1: City Selection -->
-        <div id="city-selection">
-            <div class="header">
-                <h1>🗺️ Geography Quiz</h1>
-                <p>Pick a city you're familiar with:</p>
-            </div>
-            
-            <div>
-                <button class="city-btn" onclick="selectCity('Toronto')">🍁 Toronto</button>
-                <button class="city-btn" onclick="selectCity('Vancouver')">🏔️ Vancouver</button>
-                <button class="city-btn" onclick="selectCity('Seattle')">☕ Seattle</button>
-                <button class="city-btn" onclick="selectCity('Chicago')">🏙️ Chicago</button>
-                <button class="city-btn" onclick="selectCity('Montreal')">⚜️ Montreal</button>
-                <button class="city-btn" onclick="selectCity('Boston')">🦞 Boston</button>
-            </div>
-            
-            <button class="continue-btn" onclick="showGameModes()" id="continue-btn" disabled>
-                Continue
-            </button>
+        <div class="header">
+            <button class="back-btn" onclick="showMainMenu()">← Back</button>
+            <h1>🗺️ Geography Quiz</h1>
+            <p>Test your knowledge of places, transit, and regions!</p>
         </div>
-
-        <!-- Step 2: Game Mode Selection -->
-        <div id="game-modes" class="hidden">
-            <div class="header">
-                <h2>Choose a Quiz Type</h2>
-                <p>Selected: <span id="selected-city">Toronto</span></p>
+        
+        <div class="game-content">
+            <!-- Location Selector -->
+            <div id="location-selector">
+                <h2 style="text-align: center; margin-bottom: 25px; color: #333;">What North American cities are you familiar with? 🗺️</h2>
+                <p style="text-align: center; margin-bottom: 30px; color: #666;">Search for cities or pick from popular ones below!</p>
+                
+                <div class="city-input-container">
+                    <input 
+                        type="text" 
+                        class="city-input" 
+                        id="city-input"
+                        placeholder="Search for a city... (e.g., Toronto, Seattle, Boston)"
+                        autocomplete="off"
+                    >
+                    <div class="suggestions-dropdown" id="suggestions-dropdown"></div>
+                </div>
+                
+                <!-- Popular Cities -->
+                <div style="margin-bottom: 20px;">
+                    <h4 style="color: #333; margin-bottom: 12px; font-size: 0.95em;">🔥 Popular Cities</h4>
+                    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                        <button onclick="selectCity('Toronto')" class="btn btn-secondary popular-city-btn" data-city="Toronto">
+                            🍁 Toronto <small style="opacity: 0.7;">(1,247 questions)</small>
+                        </button>
+                        <button onclick="selectCity('Vancouver')" class="btn btn-secondary popular-city-btn" data-city="Vancouver">
+                            🏔️ Vancouver <small style="opacity: 0.7;">(892 questions)</small>
+                        </button>
+                        <button onclick="selectCity('Seattle')" class="btn btn-secondary popular-city-btn" data-city="Seattle">
+                            ☕ Seattle <small style="opacity: 0.7;">(743 questions)</small>
+                        </button>
+                        <button onclick="selectCity('Chicago')" class="btn btn-secondary popular-city-btn" data-city="Chicago">
+                            🏙️ Chicago <small style="opacity: 0.7;">(651 questions)</small>
+                        </button>
+                        <button onclick="selectCity('Montreal')" class="btn btn-secondary popular-city-btn" data-city="Montreal">
+                            ⚜️ Montreal <small style="opacity: 0.7;">(589 questions)</small>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="selected-cities" id="selected-cities"></div>
+                
+                <button class="continue-btn" onclick="continueToMain()" id="continue-btn" disabled>
+                    Continue with Selected Cities
+                </button>
+                
+                <div style="text-align: center; margin-top: 15px;">
+                    <button class="btn btn-secondary" onclick="quickStart()">🎲 Quick Start</button>
+                    <button class="btn btn-secondary" onclick="nearbyMode()" style="margin-left: 10px;">📍 Around Me</button>
+                </div>
             </div>
-            
-            <button class="game-mode" onclick="startQuiz('transit')">
-                🚇 Transit Challenge<br>
-                <small>Guess subway/bus stations</small>
-            </button>
-            
-            <button class="game-mode" onclick="startQuiz('geography')">
-                🏛️ Geography Challenge<br>
-                <small>Towns, counties, regions</small>
-            </button>
-            
-            <button class="game-mode" onclick="startQuiz('capitals')">
-                🌍 World Capitals<br>
-                <small>Capital cities quiz</small>
-            </button>
-            
-            <button onclick="showCitySelection()" style="background: #f1f3f4; border: none; padding: 10px; border-radius: 8px; cursor: pointer; width: 100%; margin-top: 10px;">
-                ← Back to City Selection
-            </button>
-        </div>
-
-        <!-- Step 3: Quiz -->
-        <div id="quiz" class="hidden">
-            <div class="score">Score: <span id="score">0</span>/<span id="total">3</span></div>
-            
-            <div class="question">
-                <h3 id="question-text">Loading question...</h3>
-                <div id="options"></div>
+        
+            <!-- Main Menu -->
+            <div id="main-menu" style="display: none;">
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <span style="background: #f1f3f4; padding: 8px 16px; border-radius: 20px; font-size: 0.9em; color: #666;">
+                        📍 <span id="current-location">Location</span> | 
+                        <button style="background: none; border: none; color: #667eea; cursor: pointer; text-decoration: underline;" onclick="showLocationSelector()">Change</button>
+                    </span>
+                </div>
+                
+                <div style="background: #f8f9ff; border-radius: 15px; padding: 15px; margin-bottom: 20px; font-size: 0.9em; text-align: center;">
+                    <strong>Question Pool:</strong> <span id="question-count">15 base questions</span>
+                    <br><small style="color: #666;">Questions repeat after 8 others • Focus on your selected cities</small>
+                </div>
+                
+                <div class="game-selector">
+                    <button class="game-mode transit" onclick="startGame('transit')">
+                        <div>🚇 Transit Challenge</div>
+                        <small>Guess the subway/transit station location</small>
+                    </button>
+                    
+                    <button class="game-mode county" onclick="startGame('county')">
+                        <div>🏛️ Regional Geography</div>
+                        <small>Match towns with their counties/regions</small>
+                    </button>
+                    
+                    <button class="game-mode capital" onclick="startGame('capitals')">
+                        <div>🌍 Capital Cities</div>
+                        <small>Test your knowledge of world capitals</small>
+                    </button>
+                    
+                    <button class="game-mode next-station" onclick="startGame('nextstation')">
+                        <div>🚉 Next Station</div>
+                        <small>You're at this station - what's the next stop?</small>
+                    </button>
+                </div>
             </div>
-            
-            <div class="controls">
-                <button class="btn btn-secondary" onclick="skipQuestion()">Skip</button>
-                <button class="btn btn-primary" onclick="nextQuestion()" id="next-btn" disabled>Next</button>
+
+            <!-- Quiz Container -->
+            <div id="quiz-container" class="quiz-container">
+                <div class="score">Score: <span id="score">0</span>/<span id="total">6</span></div>
+                
+                <div class="question">
+                    <h3 id="question-text"></h3>
+                    <div id="map-container" class="map-container"></div>
+                    <div id="options" class="options"></div>
+                </div>
+                
+                <div class="controls">
+                    <button class="btn btn-secondary" onclick="skipQuestion()">Skip</button>
+                    <button class="btn btn-primary" onclick="nextQuestion()" id="next-btn" disabled>Next Question</button>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
-        // Simple data - later this goes to Firebase
+        // Global variables
+        let selectedCities = [];
+        let currentGame = '';
+        let currentQuestion = 0;
+        let score = 0;
+        let selectedAnswer = null;
+        let gameData = [];
+        let questionHistory = [];
+
+        // North American cities only (no London UK!)
+        const cities = [
+            // Canada
+            { name: 'Toronto', region: 'Ontario, Canada', emoji: '🍁', questions: 1247 },
+            { name: 'Vancouver', region: 'British Columbia, Canada', emoji: '🏔️', questions: 892 },
+            { name: 'Montreal', region: 'Quebec, Canada', emoji: '⚜️', questions: 589 },
+            { name: 'Calgary', region: 'Alberta, Canada', emoji: '🏔️', questions: 234 },
+            { name: 'Ottawa', region: 'Ontario, Canada', emoji: '🏛️', questions: 187 },
+            { name: 'Edmonton', region: 'Alberta, Canada', emoji: '🏔️', questions: 156 },
+            { name: 'Winnipeg', region: 'Manitoba, Canada', emoji: '🌾', questions: 143 },
+            { name: 'Quebec City', region: 'Quebec, Canada', emoji: '⚜️', questions: 98 },
+            
+            // United States
+            { name: 'Chicago', region: 'Illinois, USA', emoji: '🏙️', questions: 651 },
+            { name: 'Seattle', region: 'Washington, USA', emoji: '☕', questions: 743 },
+            { name: 'San Francisco', region: 'California, USA', emoji: '🌉', questions: 498 },
+            { name: 'Los Angeles', region: 'California, USA', emoji: '🌴', questions: 445 },
+            { name: 'Boston', region: 'Massachusetts, USA', emoji: '🦞', questions: 398 },
+            { name: 'Washington DC', region: 'District of Columbia, USA', emoji: '🏛️', questions: 376 },
+            { name: 'Miami', region: 'Florida, USA', emoji: '🏖️', questions: 287 },
+            { name: 'Philadelphia', region: 'Pennsylvania, USA', emoji: '🔔', questions: 234 },
+            { name: 'Atlanta', region: 'Georgia, USA', emoji: '🍑', questions: 198 },
+            { name: 'Portland', region: 'Oregon, USA', emoji: '🌲', questions: 176 },
+            { name: 'Denver', region: 'Colorado, USA', emoji: '🏔️', questions: 167 },
+            { name: 'Minneapolis', region: 'Minnesota, USA', emoji: '❄️', questions: 134 },
+            { name: 'Detroit', region: 'Michigan, USA', emoji: '🚗', questions: 123 },
+            { name: 'San Diego', region: 'California, USA', emoji: '🏄', questions: 112 },
+            { name: 'Phoenix', region: 'Arizona, USA', emoji: '🌵', questions: 89 },
+            { name: 'Dallas', region: 'Texas, USA', emoji: '🤠', questions: 87 },
+            { name: 'Houston', region: 'Texas, USA', emoji: '🚀', questions: 76 }
+        ];
+
+        // Sample questions
         const questions = {
             transit: [
                 {
-                    question: "Which city has the TTC subway system?",
-                    options: ["Toronto", "Montreal", "Vancouver", "Calgary"],
+                    question: "This subway station is located in which city?",
+                    map: "🚇 Station with distinctive architecture near major landmarks",
+                    options: ["Toronto (TTC)", "Montreal (STM)", "Vancouver (TransLink)", "Calgary (CTrain)"],
                     correct: 0,
-                    explanation: "TTC stands for Toronto Transit Commission."
+                    explanation: "This is a TTC station in Toronto."
                 },
                 {
-                    question: "What color is the main subway line in Montreal?",
-                    options: ["Red", "Blue", "Green", "Orange"],
-                    correct: 2,
-                    explanation: "Montreal's main line is the Green Line."
+                    question: "Which transit system does this station belong to?",
+                    map: "🚊 Station with blue and white tile work",
+                    options: ["Boston (MBTA)", "Chicago (CTA)", "Seattle (Sound Transit)", "San Francisco (BART)"],
+                    correct: 3,
+                    explanation: "The distinctive architecture is from BART in San Francisco."
                 },
                 {
-                    question: "Seattle's light rail system is called:",
-                    options: ["Link", "Metro", "Sound", "Transit"],
+                    question: "This bus rapid transit station is in which city?",
+                    map: "🚌 Modern BRT station with glass canopy",
+                    options: ["Ottawa (OC Transpo)", "Vancouver (TransLink)", "Montreal (STM)", "Toronto (TTC)"],
                     correct: 0,
-                    explanation: "Seattle has Link Light Rail."
+                    explanation: "This is part of Ottawa's Transitway BRT system."
                 }
             ],
-            geography: [
+            county: [
                 {
-                    question: "Elmira, Ontario is in which township?",
-                    options: ["Woolwich", "Wilmot", "Wellesley", "Waterloo"],
+                    question: "Elmira, Ontario is located in which township?",
+                    map: "📍 Small town in rural Ontario with Mennonite community",
+                    options: ["Woolwich Township", "Wilmot Township", "Wellesley Township", "North Dumfries"],
                     correct: 0,
-                    explanation: "Elmira is in Woolwich Township."
+                    explanation: "Elmira is in Woolwich Township, part of Waterloo Region."
                 },
                 {
-                    question: "Which province is Vancouver in?",
-                    options: ["Alberta", "British Columbia", "Ontario", "Quebec"],
+                    question: "New Hamburg, Ontario is located in which township?",
+                    map: "🏘️ Historic town along the Nith River",
+                    options: ["Woolwich Township", "Wilmot Township", "Wellesley Township", "East Zorra-Tavistock"],
                     correct: 1,
-                    explanation: "Vancouver is in British Columbia."
+                    explanation: "New Hamburg is in Wilmot Township, also in Waterloo Region."
                 },
                 {
-                    question: "Chicago is in which state?",
-                    options: ["Indiana", "Wisconsin", "Illinois", "Michigan"],
-                    correct: 2,
-                    explanation: "Chicago is in Illinois."
+                    question: "Stratford, Ontario is the county seat of which county?",
+                    map: "🎭 City famous for its Shakespeare Festival",
+                    options: ["Perth County", "Oxford County", "Huron County", "Wellington County"],
+                    correct: 0,
+                    explanation: "Stratford is the county seat of Perth County."
                 }
             ],
             capitals: [
                 {
-                    question: "What is the capital of Canada?",
-                    options: ["Toronto", "Montreal", "Vancouver", "Ottawa"],
-                    correct: 3,
-                    explanation: "Ottawa is Canada's capital."
-                },
-                {
-                    question: "What is the capital of Australia?",
-                    options: ["Sydney", "Melbourne", "Canberra", "Brisbane"],
-                    correct: 2,
-                    explanation: "Canberra is Australia's capital."
-                },
-                {
                     question: "What is the capital of New Zealand?",
+                    map: "🏛️ Hilly coastal city with distinctive harbor",
                     options: ["Auckland", "Wellington", "Christchurch", "Hamilton"],
                     correct: 1,
                     explanation: "Wellington is New Zealand's capital."
+                },
+                {
+                    question: "What is the capital of Australia?",
+                    map: "🏢 Planned city with modern parliament buildings",
+                    options: ["Sydney", "Melbourne", "Canberra", "Brisbane"],
+                    correct: 2,
+                    explanation: "Canberra was purpose-built as Australia's capital."
+                },
+                {
+                    question: "What is the capital of Canada?",
+                    map: "🍁 City with Gothic Revival parliament buildings",
+                    options: ["Toronto", "Montreal", "Vancouver", "Ottawa"],
+                    correct: 3,
+                    explanation: "Ottawa has been Canada's capital since 1857."
+                }
+            ],
+            nextstation: [
+                {
+                    question: "You're at Union Station in Toronto on the Yonge Line, heading toward Finch. What's the next station?",
+                    map: "🚇 YONGE LINE - Union → Finch direction",
+                    options: ["King", "Queen", "Dundas", "College"],
+                    correct: 2,
+                    explanation: "Dundas is the next northbound station after Union on the Yonge Line."
+                },
+                {
+                    question: "You're at Granville Station in Vancouver on the Expo Line, heading toward King George. What's the next station?",
+                    map: "🚇 EXPO LINE - Granville → King George direction",
+                    options: ["Burrard", "Stadium-Chinatown", "Main Street-Science World", "Commercial-Broadway"],
+                    correct: 1,
+                    explanation: "Stadium-Chinatown is the next stop after Granville going east."
+                },
+                {
+                    question: "You're at State Street Station in Chicago on the Red Line, heading toward Howard. What's the next station?",
+                    map: "🚇 RED LINE - State/Lake → Howard direction",
+                    options: ["Clark/Lake", "Grand", "Chicago", "North/Clybourn"],
+                    correct: 1,
+                    explanation: "Grand is the next northbound Red Line stop after State/Lake."
                 }
             ]
         };
 
-        // Game state
-        let selectedCity = '';
-        let currentQuiz = '';
-        let currentQuestion = 0;
-        let score = 0;
-        let selectedAnswer = null;
+        // City selection functions
+        function selectCity(cityName) {
+            console.log('Selecting city:', cityName);
+            const city = cities.find(c => c.name === cityName);
+            if (!city) {
+                console.log('City not found:', cityName);
+                return;
+            }
 
-        function selectCity(city) {
-            // Remove selection from all buttons
-            document.querySelectorAll('.city-btn').forEach(btn => {
-                btn.classList.remove('selected');
+            // Check if already selected
+            if (selectedCities.some(c => c.name === city.name)) {
+                console.log('City already selected');
+                return;
+            }
+
+            selectedCities.push(city);
+            updateDisplay();
+        }
+
+        function removeCity(index) {
+            console.log('Removing city at index:', index);
+            if (index >= 0 && index < selectedCities.length) {
+                selectedCities.splice(index, 1);
+                updateDisplay();
+            }
+        }
+
+        function updateDisplay() {
+            updatePopularButtons();
+            updateSelectedCities();
+            updateContinueButton();
+        }
+
+        function updatePopularButtons() {
+            const buttons = document.querySelectorAll('.popular-city-btn');
+            buttons.forEach(button => {
+                const cityName = button.getAttribute('data-city');
+                if (selectedCities.some(city => city.name === cityName)) {
+                    button.classList.add('selected');
+                } else {
+                    button.classList.remove('selected');
+                }
+            });
+        }
+
+        function updateSelectedCities() {
+            const container = document.getElementById('selected-cities');
+            const popularCities = ['Toronto', 'Vancouver', 'Seattle', 'Chicago', 'Montreal'];
+            
+            // Only show tags for non-popular cities
+            const nonPopularSelected = selectedCities.filter(city => !popularCities.includes(city.name));
+            
+            if (nonPopularSelected.length === 0) {
+                container.innerHTML = '';
+            } else {
+                container.innerHTML = nonPopularSelected.map((city, index) => {
+                    const realIndex = selectedCities.indexOf(city);
+                    return `
+                        <div class="city-tag">
+                            ${city.emoji} ${city.name}
+                            <span class="remove" onclick="removeCity(${realIndex})">&times;</span>
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+
+        function updateContinueButton() {
+            const btn = document.getElementById('continue-btn');
+            btn.disabled = selectedCities.length === 0;
+            
+            if (selectedCities.length === 1) {
+                btn.textContent = `Continue with ${selectedCities[0].name}`;
+            } else if (selectedCities.length > 1) {
+                btn.textContent = `Continue with ${selectedCities.length} Cities`;
+            } else {
+                btn.textContent = 'Continue with Selected Cities';
+            }
+        }
+
+        // Navigation functions
+        function continueToMain() {
+            if (selectedCities.length === 0) {
+                alert('Please select at least one city first!');
+                return;
+            }
+            
+            document.getElementById('location-selector').style.display = 'none';
+            document.getElementById('main-menu').style.display = 'block';
+            
+            const cityNames = selectedCities.map(city => city.name).join(', ');
+            document.getElementById('current-location').textContent = 
+                cityNames.length > 30 ? `${selectedCities.length} Cities` : cityNames;
+            
+            const totalQuestions = Object.values(questions).reduce((sum, arr) => sum + arr.length, 0);
+            const selectedQuestions = selectedCities.reduce((sum, city) => sum + city.questions, 0);
+            
+            document.getElementById('question-count').innerHTML = 
+                `${totalQuestions} base + ${selectedQuestions.toLocaleString()} location-specific`;
+        }
+
+        function showMainMenu() {
+            document.getElementById('location-selector').style.display = 'none';
+            document.getElementById('main-menu').style.display = 'block';
+            document.getElementById('quiz-container').style.display = 'none';
+            document.querySelector('.back-btn').style.display = 'none';
+        }
+
+        function showLocationSelector() {
+            document.getElementById('location-selector').style.display = 'block';
+            document.getElementById('main-menu').style.display = 'none';
+        }
+
+        function quickStart() {
+            const popularCities = ['Toronto', 'Vancouver', 'Seattle', 'Chicago', 'Montreal'];
+            const randomCity = cities.find(c => popularCities.includes(c.name));
+            selectedCities = [randomCity];
+            continueToMain();
+        }
+
+        function nearbyMode() {
+            const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            let defaultCity = cities.find(c => c.name === 'Toronto');
+            
+            if (timezone.includes('Pacific')) {
+                defaultCity = cities.find(c => c.name === 'Vancouver') || cities.find(c => c.name === 'Seattle');
+            } else if (timezone.includes('Mountain')) {
+                defaultCity = cities.find(c => c.name === 'Calgary') || cities.find(c => c.name === 'Denver');
+            } else if (timezone.includes('Central')) {
+                defaultCity = cities.find(c => c.name === 'Chicago');
+            }
+            
+            selectedCities = [defaultCity];
+            continueToMain();
+        }
+
+        // Search functionality
+        function initializeSearch() {
+            const input = document.getElementById('city-input');
+            const dropdown = document.getElementById('suggestions-dropdown');
+            
+            if (!input || !dropdown) return;
+            
+            input.addEventListener('input', function(e) {
+                const query = e.target.value.toLowerCase().trim();
+                
+                if (query.length < 1) {
+                    dropdown.style.display = 'none';
+                    return;
+                }
+                
+                const matches = cities
+                    .filter(city => 
+                        city.name.toLowerCase().includes(query) || 
+                        city.region.toLowerCase().includes(query)
+                    )
+                    .sort((a, b) => b.questions - a.questions)
+                    .slice(0, 8);
+                
+                if (matches.length === 0) {
+                    dropdown.style.display = 'none';
+                    return;
+                }
+                
+                dropdown.innerHTML = matches.map(city => `
+                    <div class="suggestion-item" onclick="selectCity('${city.name}')">
+                        <div class="suggestion-main">${city.emoji} ${city.name}</div>
+                        <div class="suggestion-sub">${city.region} • ${city.questions} questions</div>
+                    </div>
+                `).join('');
+                
+                dropdown.style.display = 'block';
             });
             
-            // Select clicked button
-            event.target.classList.add('selected');
-            selectedCity = city;
-            
-            // Enable continue button
-            document.getElementById('continue-btn').disabled = false;
+            document.addEventListener('click', function(e) {
+                if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+                    dropdown.style.display = 'none';
+                }
+            });
         }
 
-        function showGameModes() {
-            document.getElementById('city-selection').classList.add('hidden');
-            document.getElementById('game-modes').classList.remove('hidden');
-            document.getElementById('selected-city').textContent = selectedCity;
-        }
-
-        function showCitySelection() {
-            document.getElementById('game-modes').classList.add('hidden');
-            document.getElementById('city-selection').classList.remove('hidden');
-        }
-
-        function startQuiz(quizType) {
-            currentQuiz = quizType;
+        // Game functions
+        function startGame(gameType) {
+            currentGame = gameType;
             currentQuestion = 0;
             score = 0;
+            selectedAnswer = null;
             
-            document.getElementById('game-modes').classList.add('hidden');
-            document.getElementById('quiz').classList.remove('hidden');
+            gameData = shuffleArray(questions[gameType] || []).slice(0, 6);
             
-            document.getElementById('total').textContent = questions[quizType].length;
+            document.getElementById('main-menu').style.display = 'none';
+            document.getElementById('quiz-container').style.display = 'block';
+            document.querySelector('.back-btn').style.display = 'block';
+            
+            document.getElementById('total').textContent = gameData.length;
             document.getElementById('score').textContent = '0';
             
             loadQuestion();
         }
 
         function loadQuestion() {
-            if (currentQuestion >= questions[currentQuiz].length) {
-                showResults();
+            if (currentQuestion >= gameData.length) {
+                showGameSummary();
                 return;
             }
-
-            const question = questions[currentQuiz][currentQuestion];
-            document.getElementById('question-text').textContent = question.question;
             
-            const optionsDiv = document.getElementById('options');
-            optionsDiv.innerHTML = '';
+            const question = gameData[currentQuestion];
+            
+            document.getElementById('question-text').textContent = question.question;
+            document.getElementById('map-container').textContent = question.map;
+            
+            const optionsContainer = document.getElementById('options');
+            optionsContainer.innerHTML = '';
             
             question.options.forEach((option, index) => {
-                const optionDiv = document.createElement('div');
-                optionDiv.className = 'option';
-                optionDiv.textContent = option;
-                optionDiv.onclick = () => selectAnswer(index, optionDiv);
-                optionsDiv.appendChild(optionDiv);
+                const optionElement = document.createElement('div');
+                optionElement.className = 'option';
+                optionElement.textContent = option;
+                optionElement.onclick = () => selectAnswer(index, optionElement);
+                optionsContainer.appendChild(optionElement);
             });
             
             selectedAnswer = null;
             document.getElementById('next-btn').disabled = true;
         }
 
-        function selectAnswer(index, element) {
-            // Remove selection from all options
+        function selectAnswer(answerIndex, element) {
             document.querySelectorAll('.option').forEach(opt => {
-                opt.classList.remove('selected');
+                opt.classList.remove('selected', 'correct', 'incorrect');
             });
             
+            selectedAnswer = answerIndex;
             element.classList.add('selected');
-            selectedAnswer = index;
             document.getElementById('next-btn').disabled = false;
         }
 
         function nextQuestion() {
             if (selectedAnswer === null) return;
             
-            const question = questions[currentQuiz][currentQuestion];
+            const question = gameData[currentQuestion];
             const options = document.querySelectorAll('.option');
             const isCorrect = selectedAnswer === question.correct;
             
-            // Show correct/incorrect
             options.forEach((option, index) => {
                 if (index === question.correct) {
                     option.classList.add('correct');
                 } else if (index === selectedAnswer && !isCorrect) {
                     option.classList.add('incorrect');
                 }
-                option.onclick = null; // Disable clicking
+                option.onclick = null;
             });
             
             if (isCorrect) {
@@ -381,39 +869,58 @@
                 document.getElementById('score').textContent = score;
             }
             
-            // Show explanation
-            document.getElementById('question-text').textContent = 
-                `${isCorrect ? '✓ Correct!' : '✗ Incorrect'} ${question.explanation}`;
+            document.getElementById('map-container').innerHTML = 
+                `<div style="color: ${isCorrect ? '#4CAF50' : '#f44336'}; font-style: normal;">
+                    <strong>${isCorrect ? '✓ Correct!' : '✗ Incorrect'}</strong><br><br>${question.explanation}
+                </div>`;
             
             currentQuestion++;
             
-            if (currentQuestion >= questions[currentQuiz].length) {
-                document.getElementById('next-btn').textContent = 'Finish';
-                setTimeout(showResults, 2000);
+            if (currentQuestion >= gameData.length) {
+                document.getElementById('next-btn').textContent = 'Finish Game';
+                setTimeout(showGameSummary, 2000);
             } else {
-                setTimeout(() => {
-                    loadQuestion();
-                }, 2500);
+                setTimeout(loadQuestion, 3000);
             }
         }
 
         function skipQuestion() {
             currentQuestion++;
-            if (currentQuestion >= questions[currentQuiz].length) {
-                showResults();
+            if (currentQuestion >= gameData.length) {
+                showGameSummary();
             } else {
                 loadQuestion();
             }
         }
 
-        function showResults() {
-            const percentage = Math.round((score / questions[currentQuiz].length) * 100);
-            alert(`Quiz Complete!\nScore: ${score}/${questions[currentQuiz].length} (${percentage}%)`);
+        function showGameSummary() {
+            const percentage = Math.round((score / gameData.length) * 100);
+            let message = `Game Complete!\nScore: ${score}/${gameData.length} (${percentage}%)`;
             
-            // Reset to game modes
-            document.getElementById('quiz').classList.add('hidden');
-            document.getElementById('game-modes').classList.remove('hidden');
+            if (selectedCities.length > 0) {
+                const cityNames = selectedCities.map(c => c.name).join(', ');
+                message += `\n\nFocused on: ${cityNames}`;
+            }
+            
+            alert(message);
+            showMainMenu();
         }
+
+        function shuffleArray(array) {
+            const shuffled = [...array];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Geography Quiz loaded successfully');
+            initializeSearch();
+            updateDisplay();
+        });
     </script>
 </body>
 </html>
