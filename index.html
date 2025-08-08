@@ -649,6 +649,19 @@
             100% { transform: rotate(360deg); }
         }
 
+        /* Countdown animation */
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        #countdown {
+            display: inline-block;
+            animation: pulse 1s ease-in-out infinite;
+            font-weight: bold;
+        }
+
         /* Responsive */
         @media (max-width: 480px) {
             .container {
@@ -896,8 +909,6 @@
                     </div>
 
                     <div id="feedback" class="hidden" style="padding: 15px; border-radius: 10px; margin-bottom: 20px;"></div>
-
-                    <button class="btn btn-primary" id="nextBtn" onclick="nextQuestion()" disabled>Next Question</button>
                 </div>
             </div>
         </div>
@@ -913,6 +924,7 @@
         let currentStreak = 0;
         let hintTimer = null;
         let questionTimer = null;
+        let autoAdvanceTimer = null;
         let hintShown = false;
 
         // Level system
@@ -1068,28 +1080,24 @@
 
         // Define all window functions BEFORE Firebase loads
         window.goHome = function() {
-            if (!db) { alert('App is still loading...'); return; }
             hideAllSections();
             document.getElementById('homepageSection').classList.remove('hidden');
             updateHomepage();
         }
 
         window.showProfile = function() {
-            if (!db) { alert('App is still loading...'); return; }
             hideAllSections();
             document.getElementById('profileSection').classList.remove('hidden');
             updateProfile();
         }
 
         window.showLeaderboard = function() {
-            if (!db) { alert('App is still loading...'); return; }
             hideAllSections();
             document.getElementById('leaderboardSection').classList.remove('hidden');
-            loadLeaderboard('all');
+            if (db) loadLeaderboard('all');
         }
 
         window.showAddQuestion = function() {
-            if (!db) { alert('App is still loading...'); return; }
             hideAllSections();
             document.getElementById('addQuestionSection').classList.remove('hidden');
             
@@ -1102,14 +1110,12 @@
         }
 
         window.startQuickPlay = function() {
-            if (!db) { alert('App is still loading...'); return; }
             const modes = ['stations', 'routes', 'nextstation', 'trivia', 'geography'];
             const randomMode = modes[Math.floor(Math.random() * modes.length)];
             startGame(randomMode);
         }
 
         window.startGame = function(mode) {
-            if (!db) { alert('App is still loading...'); return; }
             currentMode = mode;
             
             let questions = allQuestions.filter(q => {
@@ -1138,7 +1144,39 @@
             };
             
             hideAllSections();
-            document.getElementById('quizSection').classList.remove('hidden');
+            
+            // Restore quiz section structure if it was replaced
+            const quizSection = document.getElementById('quizSection');
+            quizSection.innerHTML = `
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressBar" style="width: 0%;"></div>
+                </div>
+                
+                <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
+                    <span style="color: #666;">Question <span id="currentQ">1</span>/<span id="totalQ">10</span></span>
+                    <span style="color: #1e3c72; font-weight: 600;">Score: <span id="quizScore">0</span></span>
+                </div>
+
+                <div class="question-card">
+                    <div class="timer-bar" id="timerBar" style="display: none;">
+                        <div class="timer-fill" id="timerFill"></div>
+                    </div>
+                    
+                    <h3 class="question-text" id="questionText"></h3>
+                    
+                    <div class="hint-box" id="hintBox">
+                        💡 <span id="hintText"></span>
+                    </div>
+                    
+                    <div id="questionContent"></div>
+                    
+                    <div id="answerArea"></div>
+                </div>
+
+                <div id="feedback" class="hidden" style="padding: 15px; border-radius: 10px; margin-bottom: 20px;"></div>
+            `;
+            
+            quizSection.classList.remove('hidden');
             document.getElementById('totalQ').textContent = selected.length;
             
             showQuestion();
@@ -1153,6 +1191,7 @@
         }
 
         window.nextQuestion = function() {
+            if (!currentQuiz) return;
             currentQuiz.currentIndex++;
             showQuestion();
         }
@@ -1160,6 +1199,8 @@
         window.logout = function() {
             if (confirm('Are you sure you want to sign out?')) {
                 localStorage.removeItem('transitTriviaUser');
+                localStorage.removeItem('transitTriviaScore');
+                localStorage.removeItem('transitTriviaGames');
                 location.reload();
             }
         }
@@ -1209,7 +1250,7 @@
                 }
             }
             
-            db.collection('questions').add({
+            const newQuestion = {
                 city: city,
                 mode: mode,
                 answerType: answerType,
@@ -1219,31 +1260,40 @@
                 hint: hint || null,
                 addedBy: currentUser ? currentUser.username : 'Anonymous',
                 addedAt: new Date()
-            }).then(() => {
-                if (currentUser) {
-                    db.collection('users').doc(currentUser.username).update({
-                        questionsAdded: firebase.firestore.FieldValue.increment(1)
-                    });
-                    currentUser.questionsAdded = (currentUser.questionsAdded || 0) + 1;
-                }
-                
-                document.getElementById('addFeedback').innerHTML = `
-                    <div style="background: #d4edda; color: #155724; padding: 15px; border-radius: 8px; margin-top: 15px;">
-                        ✓ Question added successfully
-                    </div>
-                `;
-                
-                document.getElementById('newQuestion').value = '';
-                document.getElementById('newCorrect').value = '';
-                document.getElementById('newWrong').value = '';
-                document.getElementById('newHint').value = '';
-                
-                loadQuestions();
-                
-                setTimeout(() => {
-                    document.getElementById('addFeedback').innerHTML = '';
-                }, 3000);
-            });
+            };
+            
+            // Add to local array immediately
+            allQuestions.push(newQuestion);
+            updateQuestionCounts();
+            
+            // Try to save to database if available
+            if (db) {
+                db.collection('questions').add(newQuestion).then(() => {
+                    if (currentUser) {
+                        db.collection('users').doc(currentUser.username).update({
+                            questionsAdded: firebase.firestore.FieldValue.increment(1)
+                        });
+                        currentUser.questionsAdded = (currentUser.questionsAdded || 0) + 1;
+                    }
+                }).catch(error => {
+                    console.error('Error saving to database:', error);
+                });
+            }
+            
+            document.getElementById('addFeedback').innerHTML = `
+                <div style="background: #d4edda; color: #155724; padding: 15px; border-radius: 8px; margin-top: 15px;">
+                    ✓ Question added successfully
+                </div>
+            `;
+            
+            document.getElementById('newQuestion').value = '';
+            document.getElementById('newCorrect').value = '';
+            document.getElementById('newWrong').value = '';
+            document.getElementById('newHint').value = '';
+            
+            setTimeout(() => {
+                document.getElementById('addFeedback').innerHTML = '';
+            }, 3000);
         }
 
         window.loadLeaderboard = function(type) {
@@ -1255,28 +1305,30 @@
                 btn30.className = 'btn';
                 btn30.style.background = '#6c757d';
                 btn30.style.color = 'white';
-                
-                db.collection('users')
-                    .orderBy('totalScore', 'desc')
-                    .limit(20)
-                    .get()
-                    .then(snapshot => {
-                        displayLeaderboard(snapshot, 'totalScore');
-                    });
             } else {
                 btn30.className = 'btn btn-primary';
                 btnAll.className = 'btn';
                 btnAll.style.background = '#6c757d';
                 btnAll.style.color = 'white';
-                
-                db.collection('users')
-                    .orderBy('score30Days', 'desc')
-                    .limit(20)
-                    .get()
-                    .then(snapshot => {
-                        displayLeaderboard(snapshot, 'score30Days');
-                    });
             }
+            
+            if (!db) {
+                document.getElementById('leaderboardList').innerHTML = '<div style="text-align: center; padding: 20px; color: #666;">Leaderboard requires connection to database</div>';
+                return;
+            }
+            
+            const field = type === 'all' ? 'totalScore' : 'score30Days';
+            db.collection('users')
+                .orderBy(field, 'desc')
+                .limit(20)
+                .get()
+                .then(snapshot => {
+                    displayLeaderboard(snapshot, field);
+                })
+                .catch(error => {
+                    console.error('Error loading leaderboard:', error);
+                    document.getElementById('leaderboardList').innerHTML = '<div style="text-align: center; padding: 20px; color: #666;">Error loading leaderboard</div>';
+                });
         }
 
         // Helper functions
@@ -1315,16 +1367,16 @@
         }
 
         window.updateHomepage = function() {
-            updateUserDisplay();
+            if (currentUser) updateUserDisplay();
             updateQuestionCounts();
-            updateRecentActivity();
+            if (currentUser && currentUser.gameHistory) updateRecentActivity();
+            updateStreakDisplay();
         }
 
         window.updateUserDisplay = function() {
-            if (!currentUser) return;
-            
-            const level = getUserLevel(currentUser.totalScore || 0);
-            document.getElementById('scoreDisplay').innerHTML = `⭐ ${currentUser.totalScore || 0} pts<span class="user-level">${level.name}</span>`;
+            const score = currentUser ? (currentUser.totalScore || 0) : 0;
+            const level = getUserLevel(score);
+            document.getElementById('scoreDisplay').innerHTML = `⭐ ${score} pts<span class="user-level">${level.name}</span>`;
         }
 
         window.updateQuestionCounts = function() {
@@ -1353,7 +1405,16 @@
         }
 
         window.updateRecentActivity = function() {
+            const container = document.getElementById('recentActivity');
+            if (!container) return;
+            
             if (!currentUser || !currentUser.gameHistory || currentUser.gameHistory.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🚇</div>
+                        <div>Start playing to see your activity</div>
+                    </div>
+                `;
                 return;
             }
             
@@ -1372,11 +1433,22 @@
             });
             
             html += '</div>';
-            document.getElementById('recentActivity').innerHTML = html;
+            container.innerHTML = html;
         }
 
         window.updateProfile = function() {
-            if (!currentUser) return;
+            if (!currentUser) {
+                // Show default values if no user
+                document.getElementById('profileScore').textContent = '0';
+                document.getElementById('profileScore30').textContent = '0';
+                document.getElementById('profileGames').textContent = '0';
+                document.getElementById('profileQuestions').textContent = '0';
+                document.getElementById('currentLevelText').textContent = 'Rookie';
+                document.getElementById('nextLevelText').textContent = 'Transit Fan (100 pts)';
+                document.getElementById('levelProgressFill').style.width = '0%';
+                document.getElementById('levelProgressText').textContent = '0 / 100 points';
+                return;
+            }
             
             const allTimeScore = currentUser.totalScore || 0;
             const score30Days = currentUser.score30Days || 0;
@@ -1439,79 +1511,98 @@
         }
 
         window.showQuestion = function() {
-            if (currentQuiz.currentIndex >= currentQuiz.questions.length) {
+            if (!currentQuiz || currentQuiz.currentIndex >= currentQuiz.questions.length) {
                 endQuiz();
                 return;
             }
             
+            // Clear any existing timers
+            if (hintTimer) clearTimeout(hintTimer);
+            if (questionTimer) clearTimeout(questionTimer);
+            if (autoAdvanceTimer) clearTimeout(autoAdvanceTimer);
+            
             const question = currentQuiz.questions[currentQuiz.currentIndex];
             const progress = ((currentQuiz.currentIndex + 1) / currentQuiz.questions.length) * 100;
             
-            document.getElementById('progressBar').style.width = `${progress}%`;
-            document.getElementById('currentQ').textContent = currentQuiz.currentIndex + 1;
-            document.getElementById('quizScore').textContent = currentQuiz.score % 1 === 0 ? currentQuiz.score : currentQuiz.score.toFixed(1);
-            document.getElementById('questionText').textContent = question.question;
+            // Update progress
+            const progressBar = document.getElementById('progressBar');
+            if (progressBar) progressBar.style.width = `${progress}%`;
             
+            const currentQ = document.getElementById('currentQ');
+            if (currentQ) currentQ.textContent = currentQuiz.currentIndex + 1;
+            
+            const quizScore = document.getElementById('quizScore');
+            if (quizScore) quizScore.textContent = currentQuiz.score % 1 === 0 ? currentQuiz.score : currentQuiz.score.toFixed(1);
+            
+            const questionText = document.getElementById('questionText');
+            if (questionText) questionText.textContent = question.question;
+            
+            // Reset hint state
             hintShown = false;
-            document.getElementById('hintBox').style.display = 'none';
+            const hintBox = document.getElementById('hintBox');
+            if (hintBox) hintBox.style.display = 'none';
             
-            if (hintTimer) clearTimeout(hintTimer);
-            if (questionTimer) clearTimeout(questionTimer);
-            
-            if (question.hint) {
+            if (question.hint && hintBox) {
                 hintTimer = setTimeout(() => {
                     if (!hintShown) {
-                        document.getElementById('hintText').textContent = question.hint;
-                        document.getElementById('hintBox').style.display = 'block';
+                        const hintText = document.getElementById('hintText');
+                        if (hintText) hintText.textContent = question.hint;
+                        hintBox.style.display = 'block';
                         hintShown = true;
                     }
                 }, 10000);
             }
             
             const contentDiv = document.getElementById('questionContent');
-            
-            if (question.type === 'route-diagram') {
-                const route = routeDiagrams[question.routeKey];
-                contentDiv.innerHTML = `
-                    <div class="route-diagram">
-                        <div class="route-line" style="color: ${route.color};">
-                            ${route.stations.map((s, i) => 
-                                `<div class="station-dot ${i === 0 || i === route.stations.length - 1 ? 'terminal' : ''}"></div>`
-                            ).join('')}
+            if (contentDiv) {
+                if (question.type === 'route-diagram') {
+                    const route = routeDiagrams[question.routeKey];
+                    contentDiv.innerHTML = `
+                        <div class="route-diagram">
+                            <div class="route-line" style="color: ${route.color};">
+                                ${route.stations.map((s, i) => 
+                                    `<div class="station-dot ${i === 0 || i === route.stations.length - 1 ? 'terminal' : ''}"></div>`
+                                ).join('')}
+                            </div>
+                            <div style="display: flex; justify-content: space-between; margin-top: 10px; font-size: 0.9em;">
+                                <span>${route.stations[0]}</span>
+                                <span>${route.stations[route.stations.length - 1]}</span>
+                            </div>
                         </div>
-                        <div style="display: flex; justify-content: space-between; margin-top: 10px; font-size: 0.9em;">
-                            <span>${route.stations[0]}</span>
-                            <span>${route.stations[route.stations.length - 1]}</span>
-                        </div>
-                    </div>
-                `;
-            } else {
-                contentDiv.innerHTML = '';
+                    `;
+                } else {
+                    contentDiv.innerHTML = '';
+                }
             }
             
             const answerArea = document.getElementById('answerArea');
-            
-            if (question.answerType === 'type') {
-                answerArea.innerHTML = `
-                    <input type="text" class="type-answer-input" id="typeAnswer" placeholder="Type your answer..." onkeypress="checkTypeAnswer(event)">
-                    <button class="btn btn-primary" onclick="submitTypeAnswer()">Submit Answer</button>
-                `;
-                document.getElementById('typeAnswer').focus();
-            } else {
-                const options = [question.correct, ...question.wrong].sort(() => Math.random() - 0.5);
-                answerArea.innerHTML = `
-                    <div class="options-grid">
-                        ${options.map(option => `
-                            <button class="option-btn" onclick="checkAnswer('${option.replace(/'/g, "\\'")}', '${question.correct.replace(/'/g, "\\'")}')">
-                                ${option}
-                            </button>
-                        `).join('')}
-                    </div>
-                `;
+            if (answerArea) {
+                if (question.answerType === 'type') {
+                    answerArea.innerHTML = `
+                        <input type="text" class="type-answer-input" id="typeAnswer" placeholder="Type your answer..." onkeypress="checkTypeAnswer(event)">
+                        <button class="btn btn-primary" onclick="submitTypeAnswer()">Submit Answer</button>
+                    `;
+                    setTimeout(() => {
+                        const input = document.getElementById('typeAnswer');
+                        if (input) input.focus();
+                    }, 100);
+                } else {
+                    const options = [question.correct, ...question.wrong].sort(() => Math.random() - 0.5);
+                    answerArea.innerHTML = `
+                        <div class="options-grid">
+                            ${options.map(option => `
+                                <button class="option-btn" onclick="checkAnswer('${option.replace(/'/g, "\\'")}', '${question.correct.replace(/'/g, "\\'")}')">
+                                    ${option}
+                                </button>
+                            `).join('')}
+                        </div>
+                    `;
+                }
             }
             
-            document.getElementById('feedback').classList.add('hidden');
-            document.getElementById('nextBtn').disabled = true;
+            // Hide feedback from previous question
+            const feedback = document.getElementById('feedback');
+            if (feedback) feedback.classList.add('hidden');
         }
 
         window.processAnswer = function(isCorrect, correct, selected) {
@@ -1531,7 +1622,10 @@
             const question = currentQuiz.questions[currentQuiz.currentIndex];
             
             if (question.answerType === 'type') {
-                document.getElementById('typeAnswer').disabled = true;
+                const typeInput = document.getElementById('typeAnswer');
+                if (typeInput) typeInput.disabled = true;
+                const submitBtn = typeInput ? typeInput.nextElementSibling : null;
+                if (submitBtn) submitBtn.disabled = true;
             } else {
                 const buttons = document.querySelectorAll('.option-btn');
                 buttons.forEach(btn => {
@@ -1547,24 +1641,43 @@
             }
             
             const feedback = document.getElementById('feedback');
-            feedback.classList.remove('hidden');
-            feedback.style.background = isCorrect ? '#d4edda' : '#f8d7da';
-            feedback.style.color = isCorrect ? '#155724' : '#721c24';
-            
-            let feedbackText = isCorrect ? '✓ Correct' : '✗ Incorrect';
-            if (isCorrect && hintShown) {
-                feedbackText += ' (Half point with hint)';
+            if (feedback) {
+                feedback.classList.remove('hidden');
+                feedback.style.background = isCorrect ? '#d4edda' : '#f8d7da';
+                feedback.style.color = isCorrect ? '#155724' : '#721c24';
+                
+                let feedbackText = isCorrect ? '✓ Correct' : '✗ Incorrect';
+                if (isCorrect && hintShown) {
+                    feedbackText += ' (Half point with hint)';
+                }
+                if (!isCorrect) {
+                    feedbackText += `<br>The answer is: <strong>${correct}</strong>`;
+                }
+                
+                // Add countdown to next question
+                feedbackText += '<div style="margin-top: 10px; font-size: 0.9em; opacity: 0.9;">Next question in <span id="countdown" style="font-size: 1.2em;">2</span> seconds...</div>';
+                
+                feedback.innerHTML = feedbackText;
+                
+                // Update countdown
+                setTimeout(() => {
+                    const countdown = document.getElementById('countdown');
+                    if (countdown) countdown.textContent = '1';
+                }, 1000);
             }
-            if (!isCorrect) {
-                feedbackText += `<br>The answer is: ${correct}`;
-            }
             
-            feedback.innerHTML = `<strong>${feedbackText}</strong>`;
-            
-            document.getElementById('nextBtn').disabled = false;
+            // Auto-advance to next question after 2 seconds
+            setTimeout(() => {
+                nextQuestion();
+            }, 2000);
         }
 
         window.endQuiz = function() {
+            // Clear all timers
+            if (hintTimer) clearTimeout(hintTimer);
+            if (questionTimer) clearTimeout(questionTimer);
+            if (autoAdvanceTimer) clearTimeout(autoAdvanceTimer);
+            
             const scoreDisplay = currentQuiz.score % 1 === 0 ? currentQuiz.score : currentQuiz.score.toFixed(1);
             const percentage = Math.round((currentQuiz.score / currentQuiz.questions.length) * 100);
             
@@ -1593,6 +1706,7 @@
                 currentUser.gamesPlayed = (currentUser.gamesPlayed || 0) + 1;
                 currentUser.correctAnswers = (currentUser.correctAnswers || 0) + currentQuiz.score;
                 currentUser.currentStreak = currentStreak;
+                currentUser.lastPlayed = new Date();
                 
                 if (!currentUser.gameHistory) currentUser.gameHistory = [];
                 currentUser.gameHistory.push({
@@ -1603,15 +1717,24 @@
                 
                 calculate30DayScore();
                 
-                db.collection('users').doc(currentUser.username).update({
-                    totalScore: currentUser.totalScore,
-                    score30Days: currentUser.score30Days,
-                    gamesPlayed: currentUser.gamesPlayed,
-                    correctAnswers: currentUser.correctAnswers,
-                    lastPlayed: new Date(),
-                    currentStreak: currentStreak,
-                    gameHistory: currentUser.gameHistory
-                });
+                // Save to localStorage for persistence
+                localStorage.setItem('transitTriviaScore', currentUser.totalScore.toString());
+                localStorage.setItem('transitTriviaGames', currentUser.gamesPlayed.toString());
+                
+                // Save to database if available
+                if (db && currentUser.username) {
+                    db.collection('users').doc(currentUser.username).update({
+                        totalScore: currentUser.totalScore,
+                        score30Days: currentUser.score30Days,
+                        gamesPlayed: currentUser.gamesPlayed,
+                        correctAnswers: currentUser.correctAnswers,
+                        lastPlayed: new Date(),
+                        currentStreak: currentStreak,
+                        gameHistory: currentUser.gameHistory
+                    }).catch(error => {
+                        console.error('Error saving game results:', error);
+                    });
+                }
             }
             
             const level = getUserLevel(currentUser ? currentUser.totalScore : 0);
@@ -1649,6 +1772,7 @@
 
         window.updateStreakDisplay = function() {
             const text = document.getElementById('streakText');
+            if (!text) return;
             
             if (currentStreak === 0) {
                 text.textContent = '⚡ Take a quiz to start your streak';
@@ -1733,14 +1857,37 @@
                 gameHistory: []
             };
             
-            db.collection('users').doc(username).set({
-                ...currentUser,
-                joinedAt: new Date(),
-                lastPlayed: new Date()
-            });
+            if (db) {
+                db.collection('users').doc(username).set({
+                    ...currentUser,
+                    joinedAt: new Date(),
+                    lastPlayed: new Date()
+                }).catch(error => {
+                    console.error('Error creating user in database:', error);
+                });
+            }
+            
+            updateUserDisplay();
         }
 
         window.loadUser = function(username) {
+            if (!db) {
+                // Create local user if database not available
+                currentUser = {
+                    username: username,
+                    totalScore: 0,
+                    score30Days: 0,
+                    gamesPlayed: 0,
+                    questionsAdded: 0,
+                    correctAnswers: 0,
+                    lastPlayed: null,
+                    currentStreak: 0,
+                    gameHistory: []
+                };
+                updateUserDisplay();
+                return;
+            }
+            
             db.collection('users').doc(username).get().then(doc => {
                 if (doc.exists) {
                     currentUser = doc.data();
@@ -1792,10 +1939,85 @@
                 firebase.initializeApp(firebaseConfig);
                 db = firebase.firestore();
                 
-                // Initialize app after Firebase is ready
-                initializeApp();
+                // Load data from Firebase
+                loadQuestionsFromDB();
+                loadUserFromDB();
             };
         };
+
+        // Initialize with sample data immediately
+        window.addEventListener('DOMContentLoaded', function() {
+            // Start with sample data so app works immediately
+            allQuestions = sampleQuestions;
+            
+            // Create temp user if not exists
+            const savedUsername = localStorage.getItem('transitTriviaUser');
+            if (savedUsername) {
+                currentUser = {
+                    username: savedUsername,
+                    totalScore: parseInt(localStorage.getItem('transitTriviaScore') || '0'),
+                    score30Days: 0,
+                    gamesPlayed: parseInt(localStorage.getItem('transitTriviaGames') || '0'),
+                    questionsAdded: 0,
+                    correctAnswers: 0,
+                    lastPlayed: null,
+                    currentStreak: 0,
+                    gameHistory: []
+                };
+            } else {
+                const username = 'Player' + Math.floor(Math.random() * 10000);
+                localStorage.setItem('transitTriviaUser', username);
+                currentUser = {
+                    username: username,
+                    totalScore: 0,
+                    score30Days: 0,
+                    gamesPlayed: 0,
+                    questionsAdded: 0,
+                    correctAnswers: 0,
+                    lastPlayed: null,
+                    currentStreak: 0,
+                    gameHistory: []
+                };
+            }
+            
+            // Initialize displays
+            updateUserDisplay();
+            updateQuestionCounts();
+            updateStreakDisplay();
+            updateRecentActivity();
+        });
+
+        // Firebase-specific functions
+        window.loadQuestionsFromDB = function() {
+            if (!db) return;
+            db.collection('questions').get().then(snapshot => {
+                if (snapshot.size > 0) {
+                    const dbQuestions = [];
+                    snapshot.forEach(doc => {
+                        dbQuestions.push({
+                            id: doc.id,
+                            ...doc.data()
+                        });
+                    });
+                    // Merge database questions with sample questions
+                    allQuestions = [...sampleQuestions, ...dbQuestions];
+                    updateQuestionCounts();
+                }
+            }).catch(error => {
+                console.error('Error loading questions from database:', error);
+            });
+        }
+
+        window.loadUserFromDB = function() {
+            if (!db) return;
+            const savedUsername = localStorage.getItem('transitTriviaUser');
+            if (savedUsername) {
+                loadUser(savedUsername);
+            } else {
+                createAnonymousUser();
+            }
+            loadStreak();
+        }
     </script>
 </body>
 </html>
