@@ -442,7 +442,7 @@
 
         .route-diagram {
             background: #f8f9fa;
-            border: 3px solid #1e3c72;
+            border: 2px solid #4a5568;
             border-radius: 12px;
             padding: 20px;
             margin: 20px 0;
@@ -474,6 +474,12 @@
             border-radius: 50%;
             z-index: 1;
             position: relative;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .station-dot:hover {
+            transform: scale(1.2);
         }
 
         .station-dot.terminal {
@@ -1064,17 +1070,47 @@
                 color: '#00a651',
                 stations: ['Kipling', '...', 'St. George', '...', 'Bloor-Yonge', '...', 'Kennedy']
             },
+            'Toronto-Line4': {
+                city: 'Toronto',
+                line: 'Line 4 Sheppard',
+                color: '#a333c8',
+                stations: ['Sheppard-Yonge', '...', 'Don Mills']
+            },
             'Vancouver-CanadaLine': {
                 city: 'Vancouver',
                 line: 'Canada Line',
                 color: '#009ddc',
                 stations: ['Waterfront', '...', 'City Centre', '...', 'Marine Drive', '...', 'YVR Airport']
             },
+            'Vancouver-ExpoLine': {
+                city: 'Vancouver',
+                line: 'Expo Line',
+                color: '#0060a9',
+                stations: ['Waterfront', '...', 'Columbia', '...', 'King George']
+            },
             'Montreal-Orange': {
                 city: 'Montreal',
                 line: 'Orange Line',
                 color: '#f97b00',
                 stations: ['Côte-Vertu', '...', 'Lionel-Groulx', '...', 'Berri-UQAM', '...', 'Montmorency']
+            },
+            'Montreal-Green': {
+                city: 'Montreal',
+                line: 'Green Line',
+                color: '#00a650',
+                stations: ['Angrignon', '...', 'Lionel-Groulx', '...', 'Berri-UQAM', '...', 'Honoré-Beaugrand']
+            },
+            'NewYork-4Train': {
+                city: 'New York',
+                line: '4 Express',
+                color: '#00933c',
+                stations: ['Woodlawn', '...', '125 St', '...', 'Grand Central', '...', 'Brooklyn Bridge']
+            },
+            'Chicago-BlueLine': {
+                city: 'Chicago',
+                line: 'Blue Line',
+                color: '#00a1de',
+                stations: ["O'Hare", '...', 'Downtown', '...', 'Forest Park']
             }
         };
 
@@ -1351,19 +1387,81 @@
         }
 
         window.createRouteQuestions = function() {
-            return Object.entries(routeDiagrams).map(([key, route]) => ({
-                type: 'route-diagram',
-                routeKey: key,
-                question: 'Which city and line is this?',
-                correct: `${route.city} - ${route.line}`,
-                wrong: [
-                    'Toronto - Line 2 Bloor-Danforth',
-                    'Vancouver - Expo Line', 
-                    'Montreal - Green Line',
-                    'Chicago - Blue Line'
-                ].filter(opt => opt !== `${route.city} - ${route.line}`).slice(0, 3),
-                answerType: 'multiple'
-            }));
+            // Define hints for each route
+            const routeHints = {
+                'Toronto-Line1': 'This is Toronto\'s busiest subway line, running in a U-shape',
+                'Toronto-Line2': 'This east-west line is named after two major Toronto streets',
+                'Toronto-Line4': 'Toronto\'s shortest subway line with only 5 stations',
+                'Vancouver-CanadaLine': 'This line connects downtown Vancouver to the airport',
+                'Vancouver-ExpoLine': 'Vancouver\'s oldest SkyTrain line, opened for Expo 86',
+                'Montreal-Orange': 'Montreal\'s busiest metro line, running east-west',
+                'Montreal-Green': 'Montreal\'s longest metro line',
+                'NewYork-4Train': 'This NYC express line runs along Lexington Avenue in Manhattan',
+                'Chicago-BlueLine': 'Chicago\'s line that provides 24-hour service to the airport'
+            };
+            
+            return Object.entries(routeDiagrams).map(([key, route]) => {
+                // Create more challenging wrong answers based on the city
+                let wrongAnswers = [];
+                
+                if (route.city === 'Toronto') {
+                    wrongAnswers = [
+                        'Toronto - Line 1 Yonge-University',
+                        'Toronto - Line 2 Bloor-Danforth',
+                        'Toronto - Line 3 Scarborough',
+                        'Toronto - Line 4 Sheppard'
+                    ].filter(opt => opt !== `${route.city} - ${route.line}`);
+                } else if (route.city === 'Vancouver') {
+                    wrongAnswers = [
+                        'Vancouver - Expo Line',
+                        'Vancouver - Millennium Line',
+                        'Vancouver - Canada Line'
+                    ].filter(opt => opt !== `${route.city} - ${route.line}`);
+                } else if (route.city === 'Montreal') {
+                    wrongAnswers = [
+                        'Montreal - Green Line',
+                        'Montreal - Orange Line',
+                        'Montreal - Yellow Line',
+                        'Montreal - Blue Line'
+                    ].filter(opt => opt !== `${route.city} - ${route.line}`);
+                } else if (route.city === 'New York') {
+                    wrongAnswers = [
+                        'New York - 1 Train',
+                        'New York - 4 Express',
+                        'New York - 6 Express',
+                        'New York - L Train'
+                    ].filter(opt => opt !== `${route.city} - ${route.line}`);
+                } else if (route.city === 'Chicago') {
+                    wrongAnswers = [
+                        'Chicago - Blue Line',
+                        'Chicago - Red Line',
+                        'Chicago - Green Line',
+                        'Chicago - Orange Line'
+                    ].filter(opt => opt !== `${route.city} - ${route.line}`);
+                } else {
+                    // Generic wrong answers for other cities
+                    wrongAnswers = [
+                        'Toronto - Line 2 Bloor-Danforth',
+                        'Vancouver - Expo Line',
+                        'Montreal - Green Line',
+                        'Chicago - Red Line',
+                        'New York - 6 Express'
+                    ].filter(opt => opt !== `${route.city} - ${route.line}`);
+                }
+                
+                // Shuffle and pick 3 wrong answers
+                wrongAnswers = wrongAnswers.sort(() => Math.random() - 0.5).slice(0, 3);
+                
+                return {
+                    type: 'route-diagram',
+                    routeKey: key,
+                    question: 'Which transit line connects these terminals?',
+                    correct: `${route.city} - ${route.line}`,
+                    wrong: wrongAnswers,
+                    answerType: 'multiple',
+                    hint: routeHints[key] || 'Look at the terminal station names for clues'
+                };
+            });
         }
 
         window.updateHomepage = function() {
@@ -1395,6 +1493,7 @@
                 }
             });
             
+            // Add route diagram questions to the count
             counts.routes += Object.keys(routeDiagrams).length;
             
             document.getElementById('stationsCount').textContent = counts.stations;
@@ -1557,17 +1656,38 @@
             if (contentDiv) {
                 if (question.type === 'route-diagram') {
                     const route = routeDiagrams[question.routeKey];
+                    // Use neutral color instead of actual line color to not give away the answer
+                    const neutralColor = '#4a5568'; // Neutral gray color
+                    
+                    // Count intermediate stations (non-terminal, non-ellipsis)
+                    const intermediateCount = route.stations.filter((s, i) => 
+                        i !== 0 && i !== route.stations.length - 1 && s !== '...'
+                    ).length;
+                    
                     contentDiv.innerHTML = `
                         <div class="route-diagram">
-                            <div class="route-line" style="color: ${route.color};">
+                            <div class="route-line" style="color: ${neutralColor};">
                                 ${route.stations.map((s, i) => 
-                                    `<div class="station-dot ${i === 0 || i === route.stations.length - 1 ? 'terminal' : ''}"></div>`
+                                    `<div class="station-dot ${i === 0 || i === route.stations.length - 1 ? 'terminal' : ''}" 
+                                         ${(i === 0 || i === route.stations.length - 1 || s !== '...') ? `title="${s}"` : ''}>
+                                    </div>`
                                 ).join('')}
                             </div>
-                            <div style="display: flex; justify-content: space-between; margin-top: 10px; font-size: 0.9em;">
-                                <span>${route.stations[0]}</span>
-                                <span>${route.stations[route.stations.length - 1]}</span>
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-top: 10px;">
+                                <div style="text-align: left;">
+                                    <div style="font-size: 0.9em; font-weight: 600;">${route.stations[0]}</div>
+                                    <div style="font-size: 0.75em; color: #666;">Terminal A</div>
+                                </div>
+                                <div style="text-align: right;">
+                                    <div style="font-size: 0.9em; font-weight: 600;">${route.stations[route.stations.length - 1]}</div>
+                                    <div style="font-size: 0.75em; color: #666;">Terminal B</div>
+                                </div>
                             </div>
+                            ${intermediateCount > 0 ? `
+                                <div style="text-align: center; margin-top: 10px; font-size: 0.8em; color: #666;">
+                                    ${intermediateCount} key station${intermediateCount > 1 ? 's' : ''} shown between terminals
+                                </div>
+                            ` : ''}
                         </div>
                     `;
                 } else {
